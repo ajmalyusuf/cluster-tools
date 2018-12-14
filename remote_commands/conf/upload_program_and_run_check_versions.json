@@ -1,0 +1,52 @@
+{
+    "variables" : {
+        "hostname" : "kchdp-ssh.azurehdinsight.net",
+        "--hostname" : "dfs1-dev.openstacklocal",
+        "username" : "sshuser",
+        "--username" : "ajmal",
+        "password" : "Password1..",
+        "--password" : "ajmal"
+    },
+
+    "constants" : {
+        "timeout_secs" : 30,
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "progress_prompt" : "ETA",
+        "sudo_password_prompt" : "password for {username}:",
+        "remote_program_dir" : "remote_program"
+    },
+
+    "main" : [
+        "create_program_dir",
+        "upload_program",
+        "execute_program_remotely"
+    ],
+
+    "create_program_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr $HOME/{remote_program_dir}",
+            "mkdir -p $HOME/{remote_program_dir}",
+            "ls -al $HOME/{remote_program_dir}"
+        ]
+    },
+
+    "upload_program" : {
+        "action" : "scp",
+        "direction" : "send",
+        "source_dir" : "./",
+        "source_files" : [ "*" ],
+        "target_dir" : "/home/{username}/{remote_program_dir}"
+    },
+
+    "execute_program_remotely" : {
+        "action" : "ssh",
+        "commands" : [
+            "PROGRAM_HOME=$HOME/{remote_program_dir}",
+            "python $PROGRAM_HOME/etc_cluster_hosts.py -u {username} -p {password} -i 'hn,wn,zk' -f $PROGRAM_HOME/conf/check_versions.json",
+            "--rm -fr $PROGRAM_HOME"
+        ]
+    }
+}
+

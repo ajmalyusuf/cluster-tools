@@ -1,0 +1,52 @@
+{
+    "variables" : {
+        "credentials.hostname" : [ "kchdp-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
+        "credentials.username" : [ "sshuser", "ajmal" ],
+        "credentials.password" : [ "Password1..", "ajmal" ],
+        "group2.service" : [ "HDFS", "HIVE" ],
+        "group2.log_dir" : [ "/var/log/hadoop/hdfs", "/var/log/hive" ]
+    },
+
+    "constants" : {
+        "timeout_secs" : "30",
+        "target_dir" : "/Users/ayusuf/CLUSTER_LOGS/{run_id}/{service}/{hostname}"
+    },
+
+    "main" : [
+        "create_local_dir_foreach_host",
+        "set_remote_read_permission",
+        "--get_log_files_from_remote",
+        "--get_conf_files_from_remote"
+    ],
+
+    "create_local_dir_foreach_host" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {target_dir}",
+            "ls -al {target_dir}/../"
+        ]
+    },
+
+    "set_remote_read_permission" : {
+        "action" : "ssh",
+        "timeout_secs" : 200,
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+        "commands" : [
+            "sudo chmod +r {log_dir}/*"
+        ]
+    },
+
+    "get_log_files_from_remote" : {
+        "action" : "scp",
+        "direction" : "get",
+        "progress_prompt" : "ETA",
+        "password_prompt" : "password: ",
+        "source_dir" : "{log_dir}",
+        "--source_files" : [ "*.log", "*.err", "*.out", "*.audit" ],
+        "source_files" : [ "*.audit" ],
+        "target_dir" : "{target_dir}"
+    }
+}
+

@@ -1,0 +1,26 @@
+{
+    "variables.product" : {
+        "timeout_secs" : 30,
+        "hostname" : "kchdp-ssh.azurehdinsight.net",
+        "username" : "sshuser",
+        "password" : "Password1.."
+    },
+
+    "main" : [
+        "check_jar_meta_info"
+    ],
+
+    "check_jar_meta_info" : {
+        "action" : "ssh",
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+        "commands" : [
+                "unzip -q -c /usr/hdp/2.*/hive/lib/hive-exec-1.2.1000.2.*.jar META-INF/MANIFEST.MF | grep '2.'",
+                "unzip -q -c /usr/hdp/2.*/hive/lib/hive-metastore-1.2.1000.2.*.jar META-INF/MANIFEST.MF | grep '2.'",
+                "unzip -q -c /usr/hdp/2.*/hive/lib/hive-jdbc-1.2.1000.2.*.jar META-INF/MANIFEST.MF | grep '2.'",
+                "unzip -q -c /usr/hdp/2.*/hive/lib/hive-service-1.2.1000.2.*.jar META-INF/MANIFEST.MF | grep '2.'",
+                "unzip -q -c /usr/hdp/2.*/hive/lib/hive-beeline-1.2.1000.2.*.jar META-INF/MANIFEST.MF | grep '2.'"
+        ]
+    }
+}

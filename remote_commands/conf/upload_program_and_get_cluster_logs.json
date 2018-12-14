@@ -1,0 +1,90 @@
+{
+    "variables" : {
+        "hostname" : "kchdp-ssh.azurehdinsight.net",
+        "--hostname" : "dfs1-dev.openstacklocal",
+        "username" : "sshuser",
+        "--username" : "ajmal",
+        "password" : "Password1..",
+        "--password" : "ajmal"
+    },
+
+    "constants": {
+        "timeout_secs" : 100,
+        "shell_prompt" : "\\$ $",
+        "progress_prompt" : "ETA",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+
+        "remote_home" : "/home/{username}",
+        "remote_program_dir" : "/home/{username}/remote_program",
+        "local_target_dir": "/Users/ayusuf/CLUSTER_LOGS/"
+    },
+
+    "main" : [
+        "create_remote_program_dir",
+        "upload_program",
+        "execute_program_remotely",
+        "build_tgz_file",
+        "create_local_dir",
+        "get_tgz_file",
+        "delete_tgz_file"
+    ],
+
+    "create_remote_program_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {remote_program_dir}",
+            "mkdir -p {remote_program_dir}",
+            "ls -al {remote_program_dir}"
+        ]
+    },
+
+    "upload_program" : {
+        "action" : "scp",
+        "direction" : "send",
+        "source_dir" : "./",
+        "source_files" : [ "*" ],
+        "target_dir" : "{remote_program_dir}"
+    },
+
+    "execute_program_remotely" : {
+        "action" : "ssh",
+        "commands" : [
+            "cd {remote_program_dir}",
+            "python ambari_cluster_hosts.py -a localhost -u test -w test -s HDFS -c ALL --ssh-user sshuser --ssh-pass Password1.. -f conf/copy_and_tar_logs_to_headnodehost.json --run-id {run_id}",
+            "rm -fr {remote_program_dir}"
+        ]
+    },
+
+    "build_tgz_file" : {
+        "action" : "ssh",
+        "commands" : [
+            "tar -zcvf {run_id}.tgz ./{run_id}",
+            "rm -fr ./{run_id}"
+        ]
+    },
+
+    "create_local_dir" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {local_target_dir}",
+            "ls -al {local_target_dir}"
+        ]
+    },
+
+    "get_tgz_file" : {
+        "action" : "scp",
+        "direction" : "get",
+        "source_dir" : "{remote_home}",
+        "source_files" : "{run_id}.tgz",
+        "target_dir" : "{local_target_dir}"
+    },
+
+    "delete_tgz_file" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {run_id}.tgz"
+        ]
+    }
+}
+

@@ -1,0 +1,34 @@
+{
+    "variables" : {
+        "credentials.hostname" : [ "kchdp-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
+        "credentials.username" : [ "sshuser", "ajmal" ],
+        "credentials.password" : [ "Password1..", "ajmal" ]
+    },
+
+    "constants" : {
+        "timeout_secs" : "10z",
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+
+        "type_command" : "lsb_release -a|grep 'Distributor ID:'|cut -d ':' -f2|tr -d '[:space:]'",
+        "ubuntu_command" : "dpkg --list | grep hadoop",
+        "redhat_command" : "rpm -qa | grep hadoop"
+    },
+
+    "main" : [
+        "check_versions"
+    ],
+
+    "check_versions" : {
+        "action" : "ssh",
+        "commands" : [
+            "hostname -f",
+            "java -version",
+            "python --version",
+            "LINUX_TYPE=$( {type_command} )",
+            "if [ \"$LINUX_TYPE\" == \"Ubuntu\" ]; then {ubuntu_command}; else {redhat_command}; fi"
+        ]
+    }
+}
+
