@@ -11,20 +11,47 @@ Below are the different modules and files in the project
 
 1. Framework module [remote.py](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/remote.py)
 
-This is the heart of the tool. This module takes a config file (explained below) and executes the list of **actions** specified in the config file. The module supports three types of actions; **local**, **ssh** and **scp**.
+This is the heart of the tool. This module takes a config file in JSON format (explained below) and executes the list of **actions** specified in the config file. The module supports three types of actions; **local**, **ssh** and **scp**.
 
-a. local action
+  * __local__ action
    
-     A local action will perform the list of commands on the local machine where the program is run.
+    A *local* action will perform the list of commands on the local machine where the program is run. Below are the supported arguments/parameters:
+      * _action_ : a value of "**local**" for local action
+      * _commands_ : list of bash commands to be executed on the local host
+    
+    For example **local** action named '*create_local_dir*' with two bash commands would look like:
+    ```python
+    "create_local_dir" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {local_target_dir}",
+            "ls -al {local_target_dir}/../"
+        ]
+    },
+    ```
 
-b. ssh action
+  * __ssh__ action
    
-     wfewfwwf
+    A *ssh* action will perform the list of commands on the remote machine specified using the parameter *{hostname}*. Below are the supported arguments/parameters:
+      * _{hostname}_ : hostname of the remote machine
+      * _{username}_ : username on the remote machine
+      * _{password}_ : password for the given username
+      * _{password_prompt}_ : the regex pattern for the scp password prompt of the remote server. In most Linux flavours, this will be "password: ".
   
-c. scp action
+  * __scp__ action
    
-     fweeww
-
+    A *scp* action is used to transfer files from or to a remote machine. The supported arguments are:
+      * _{hostname}_ : hostname of the remote machine
+      * _{username}_ : username on the remote machine
+      * _{password}_ : password for the given username
+      * _{direction}_ : A value of _send_ or _get_. Default value is _get_, if not specified
+      * _{password_prompt}_ : the regex pattern for the scp password prompt of the remote server. In most Linux flavours, this will be "password: ".
+      * _{progress_prompt}_ : the regex pattern for the file transfer progress. Most scp implementation will have the progress prompt pattern as "ETA".
+      * _{source_dir}_ : source directory
+      * _{source_files}_ : filename (supports unix wild-cards) or a list of filenames 
+      * _{target_dir}_ : The target directory is where the file(s) will be trasferred to. 
+      If the _direction_ is **get** \[default\, in not specified], then *{target_dir}* will on the local machine and the *{source_dir}* will be on the remote server.
+        
 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
 
 These are JSON format files with instructions on list of commands. 
