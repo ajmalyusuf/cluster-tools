@@ -69,13 +69,13 @@ optional arguments:
 
 A config file is a JSON format file with a set of actions configured. This config file is passed to the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program to execute all the set of actions.
 
-**The [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program is intelligent to run each of the actions for that many iterations as defined by the number of values for each of the variables used in the action.**
+**The [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program is intelligent to run each of the actions for that many iterations as defined by the number of values for each of the variables used in the action.**. Detailed explanation is provided in Section 2.3 Actions section.
 
 A sample config file: [conf/simple_local_ssh_scp_actions.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/conf/simple_local_ssh_scp_actions.json)
 
 Each config file has below sections defined as a JSON elements:
 
-### 2.1. **variables** and **constants** section
+### 2.1. "**variables**" and "**constants**" section
   
 **variables** and **constants** are optional sections (but very useful) to define variables which can be used as arguments to the actions, values for the arguments and also in the commands. A variable can be used by surrounding inside two curly brackets.
     
@@ -95,7 +95,7 @@ Each config file has below sections defined as a JSON elements:
     "sudo_password_prompt" : "password for {username}:",
 
     "local_target_dir" : "/Users/ayusuf/CLUSTER_LOGS/{run_id}/{hostname}",
-    "remote_working_dir" : "/home/{username}/my_temp_dir",
+    "remote_working_dir" : "/home/{username}/{hostname}",
     "file_name" : [ "test_file_1.out", "test_file_2.out" ]
 }
 ```
@@ -108,9 +108,9 @@ For example, the [hosts_from_ambari_api.py](https://github.com/ajmalyusuf/cluste
 
 Similarly, the [hosts_from_etc_hosts_file.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/hosts_from_etc_hosts_file.py) script reads the **/etc/hosts** file and gets the list of cluster hostnames; then replaces that info in the **variables** section and runs the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program.
 
-### 2.2. **main** section
+### 2.2. "**main**" section
   
-This is the point of entry of the actions. This section defines a list of action names, which are defined in the config files. The program will run the actions in the provided order.
+This is the point of entry of the actions. This section defines a list of action names, which are defined in the config files. The program will run the actions in the given order.
 
 ```
 "main" : [
@@ -122,8 +122,11 @@ This is the point of entry of the actions. This section defines a list of action
 ```
 All of these actions should be defined in the config file (shown below).
 
-### 2.3. **action definitions** 
+### 2.3. **Action definitions** 
 
+#### 2.3.1 "create_local_dir" action
+
+The below JSON element defines the _create_local_dir_ local action. **_mkdir_** and the **_ls_** commands will be performed on the local machine where the program is run.
 ```
 "create_local_dir" : {
     "action" : "local",
@@ -133,6 +136,32 @@ All of these actions should be defined in the config file (shown below).
     ]
 },
 ```
+Please note that the variable _{local_target_dir}_ is defiend in the **constants** section, using two other variables: _{run_id}_ and _{hostname}_.
+
+_{run_id}_ has only one value for any run instance; lets assume it to be "*RID_20181216_152011_UTC*" (automatically generated based on system timestamp when run). But, _{hostname}_ is configured as a list/array of 2 values: "*ajmal-ssh.azurehdinsight.net*", "*ec2.18-234-201.compute-1.amazonaws.com*".
+
+The **remote.py** program, is intellent to resolve the _{local_target_dir}_ variable as two sets of values by taking the **cartesian product** of the values of _{run_id}_ and _{hostname}_
+1. ( RID_20181216_152011_UTC, ajmal-ssh.azurehdinsight.net )
+2. ( RID_20181216_152011_UTC, ec2.18-234-201.compute-1.amazonaws.com )
+
+So the above action/commands will be run for two iterations as:
+
+First iteration:
+```
+mkdir -p /Users/ayusuf/CLUSTER_LOGS/RID_20181216_152011_UTC/ajmal-ssh.azurehdinsight.net
+ls -al /Users/ayusuf/CLUSTER_LOGS/RID_20181216_152011_UTC/ajmal-ssh.azurehdinsight.net/../
+```
+Second iteration:
+```
+mkdir -p /Users/ayusuf/CLUSTER_LOGS/RID_20181216_152011_UTC/ec2.18-234-201.compute-1.amazonaws.com
+ls -al /Users/ayusuf/CLUSTER_LOGS/RID_20181216_152011_UTC/ec2.18-234-201.compute-1.amazonaws.com/../
+```
+So two directories will be created in the local machine:
+
+#### 2.3.2 "create_remote_dir" action
+
+Consider the _{remote_working_dir}_ variable used in this action.
+
 ```
 "create_remote_dir" : {
     "action" : "ssh",
@@ -141,6 +170,35 @@ All of these actions should be defined in the config file (shown below).
     ]
 },
 ```
+The value of this variable is "_/home/{username}/{hostname}_", which shows that it has two other variables _{username}_ and _{hostname}_
+In the **variables** section, both of these variables (and _{password}_) are grouped under _credentials_ name with a dot (.) seperator.
+```
+    "credentials.hostname" : [ "ajmal-ssh.azurehdinsight.net", "ec2.18-234-201.compute-1.amazonaws.com" ],
+    "credentials.username" : [ "sshuser", "ajmal" ],
+    "credentials.password" : [ "mypass123@", "somepass123!" ]
+```
+This indicates the remote.py program to use all of these variables (_{hostname}, {username} and {password}_) together as a group when performing a **cartesian product** with other variables. This is very important because, we do not one username or password to be used by the other hostname.
+
+So the below command will be first resolved to to the other variables and then run only for two iterations.
+```
+"mkdir -p {remote_working_dir}" RESOLVED TO "mkdir -p /home/{username}/{hostname}"
+```
+Two sets of value:
+1. ( sshuser, ajmal-ssh.azurehdinsight.net )
+2. ( ajmal, ec2.18-234-201.compute-1.amazonaws.com )
+
+First iteration:
+```
+"mkdir -p /home/sshuser/ajmal-ssh.azurehdinsight.net"
+```
+Second iteration:
+```
+"mkdir -p /home/ajmal/ec2.18-234-201.compute-1.amazonaws.com"
+```
+**Note:** It will **NOT** create a directory something like /home/**sshuser**/ec2.18-234-201.compute-1.amazonaws.com as each set of values are grouped by the _credentials_ group name. You can give any name; but all the variables in a group should have the same name (prefix before dot)
+
+#### 2.3.3 "create_remote_dir" action
+Similarly, the below action has three variables _{username}_, _{hostname}_ (resolved from _{remote_working_dir}_) and _{file_name}_
 ```
 "create_remote_files" : {
     "action" : "ssh",
@@ -150,6 +208,36 @@ All of these actions should be defined in the config file (shown below).
     ]
 },
 ```
+_{username}_ and _{hostname} are grouped as _credentials_; so those have only two values
+_{file_name}_ is a list/array of two values "test_file_1.out" and "test_file_2.out"
+
+So the **cartesian product** will be between:
+( sshuser, ajmal-ssh.azurehdinsight.net ) , ( ajmal, ec2.18-234-201.compute-1.amazonaws.com )
+and
+test_file_1.out and test_file_2.out
+
+Resulting in 4 sets of values:
+1. sshuser, ajmal-ssh.azurehdinsight.net, test_file_1.out
+2. sshuser, ajmal-ssh.azurehdinsight.net, test_file_2.out
+3. ajmal, ec2.18-234-201.compute-1.amazonaws.com, test_file_1.out
+4. ajmal, ec2.18-234-201.compute-1.amazonaws.com, test_file_2.out
+
+The **cd** and **echo** commands will be run for 4 iterations.
+```
+"cd /home/sshuser/ajmal-ssh.azurehdinsight.net",
+"echo \"This line is written by the remote program\" > test_file_1.out"
+
+"cd /home/sshuser/ajmal-ssh.azurehdinsight.net",
+"echo \"This line is written by the remote program\" > test_file_2.out"
+
+"cd /home/ajmal/ec2.18-234-201.compute-1.amazonaws.com",
+"echo \"This line is written by the remote program\" > test_file_1.out"
+
+"cd /home/ajmal/ec2.18-234-201.compute-1.amazonaws.com",
+"echo \"This line is written by the remote program\" > test_file_2.out"     
+```
+#### 2.3.4 "scp_remote_files_to_local_dir" action
+I am tired to explain this; please figure it out as an exercise :-)
 ```
 "scp_remote_files_to_local_dir" : {
     "action" : "scp",
