@@ -36,9 +36,9 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_hostname_** : hostname of the remote machine
       * **_username_** : username on the remote machine
       * **_password_** : password for the given username
-      * **_shell_prompt_** : the regex pattern for the ssh shell prompt from the remote server. In most Linux flavours, this will be **_\$ $_**.
-      * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be **_password: _**.
-      * **_sudo_password_prompt_** : the regex pattern for the password prompt, when a sudo command is run. In most Linux flavours, this will be "**_password for {username}: _**".
+      * **_shell_prompt_** : the regex pattern for the ssh shell prompt from the remote server. In most Linux flavours, this will be "``\\$ $``".
+      * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be "``password: **``".
+      * **_sudo_password_prompt_** : the regex pattern for the password prompt, when a sudo command is run. In most Linux flavours, this will be "``password for {username}: ``".
       
     Example of a **ssh** action:
     ```python
@@ -60,13 +60,14 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_hostname_** : hostname of the remote machine
       * **_username_** : username on the remote machine
       * **_password_** : password for the given username
-      * **_direction_** : A value of _send_ or _get_. Default value is **_get_**, if not specified
-      * **_password_prompt_** : the regex pattern for the scp password prompt from the remote server. In most Linux flavours, this will be "**_password: _**".
-      * **_progress_prompt_** : the regex pattern for the file transfer progress. Most scp implementation will have the progress prompt pattern as "**_.\*ETA_**".
+      * **_direction_** : A value of "``send``" or "``get``". Default value is "``get``", if not specified.
+      * **_password_prompt_** : the regex pattern for the scp password prompt from the remote server. In most Linux flavours, this will be "``password: ``".
+      * **_progress_prompt_** : the regex pattern for the file transfer progress. Most scp implementation will have the progress prompt pattern as "``.\*ETA``".
       * **_source_dir_** : source directory
       * **_source_files_** : filename (supports unix wild-cards) or a list of filenames 
-      * **_target_dir_** : The target directory is where the file(s) will be trasferred to. 
-      If the _direction_ is **get**, then *target_dir* will on the local machine and *source_dir* will be on the remote machine. If the _direction_ is **send**, then the other way. 
+      * **_target_dir_** : The target directory is where the file(s) will be trasferred to.
+      
+      Note: If the **_direction_** is "``get``", then **_target_dir_** will on the local machine and **_source_dir_** will be on the remote machine. If the **_direction_** is "``send``", then the other way around. 
     
     Example of a **scp** action:
     ```python
