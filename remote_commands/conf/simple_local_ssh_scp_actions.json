@@ -12,7 +12,7 @@
         "sudo_password_prompt" : "password for {username}:",
 
         "local_target_dir" : "/Users/ayusuf/CLUSTER_LOGS/{run_id}/{hostname}",
-        "remote_working_dir" : "/home/{username}/my_temp_dir",
+        "remote_working_dir" : "/home/{username}/{hostname}",
         "file_name" : [ "test_file_1.out", "test_file_2.out" ]
     },
 
