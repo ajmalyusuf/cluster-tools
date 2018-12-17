@@ -179,7 +179,7 @@ In the **variables** section, both of these variables (and _{password}_) are gro
 ```
 This indicates the remote.py program to use all of these variables (_{hostname}, {username} and {password}_) together as a group when performing a **cartesian product** with other variables. This is very important because, we do not one username or password to be used by the other hostname.
 
-So the below command will be first resolved to to the other variables and then run only for two iterations.
+So the below command will first be resolved to the other variables and then run only for two iterations.
 ```
 "mkdir -p {remote_working_dir}" RESOLVED TO "mkdir -p /home/{username}/{hostname}"
 ```
@@ -195,7 +195,7 @@ Second iteration:
 ```
 "mkdir -p /home/ajmal/ec2.18-234-201.compute-1.amazonaws.com"
 ```
-**Note:** It will **NOT** create a directory something like /home/**sshuser**/ec2.18-234-201.compute-1.amazonaws.com as each set of values are grouped by the _credentials_ group name. You can give any name; but all the variables in a group should have the same name (prefix before dot)
+**Note:** It will **NOT** create a directory something like /home/**sshuser**/ec2.18-234-201.compute-1.amazonaws.com as each set of values are grouped by the _credentials_ group name. You can give any name for a group; but all the variables in a group should have the same name (prefix before dot)
 
 #### 2.3.3 "create_remote_dir" action
 Similarly, the below action has three variables _{username}_, _{hostname}_ (resolved from _{remote_working_dir}_) and _{file_name}_
@@ -209,6 +209,7 @@ Similarly, the below action has three variables _{username}_, _{hostname}_ (reso
 },
 ```
 _{username}_ and _{hostname} are grouped as _credentials_; so those have only two values
+
 _{file_name}_ is a list/array of two values "test_file_1.out" and "test_file_2.out"
 
 So the **cartesian product** will be between:
