@@ -15,18 +15,7 @@ This is the heart of the tool. This module takes a config file in JSON format (e
     A **_local_** action will perform the list of commands on the local machine where the program is run. Below are the supported arguments/parameters:
       * **_action_** : a value of ``local`` for local action
       * **_commands_** : list of bash commands to be executed on the local host
-    
-    For example, a **local** action named ``create_local_dir`` with two bash commands would look like:
-    ```python
-    "create_local_dir" : {
-        "action" : "local",
-        "commands" : [
-            "mkdir -p {local_target_dir}",
-            "ls -al {local_target_dir}/../"
-        ]
-    },
-    ```
-    
+   
   * __ssh__ action
    
     A **_ssh_** action will perform the list of commands on the remote machine specified using the parameter *hostname*. Below are the supported arguments/parameters:
@@ -37,21 +26,7 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_shell_prompt_** : the regex pattern for the ssh shell prompt from the remote server. In most Linux flavours, this will be ``\\$ $``
       * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be ``password: **``
       * **_sudo_password_prompt_** : the regex pattern for the password prompt, when a sudo command is run. In most Linux flavours, this will be ``password for {username}: ``
-      
-    Example of a **ssh** action:
-    ```python
-    "create_remote_files" : {
-        "action" : "ssh",
-        "shell_prompt" : "\\$ $",
-        "password_prompt" : "password: ",
-        "sudo_password_prompt" : "password for {username}:",
-        "commands" : [
-            "cd {remote_working_dir}",
-            "echo \"This line is written by the remote program\" > {file_name}"
-        ]
-    },
-    ```
-  
+   
   * __scp__ action
    
     A **_scp_** action is used to transfer files from or to a remote machine. The supported arguments are:
@@ -66,20 +41,8 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_source_files_** : filename (supports unix wild-cards) or a list of filenames 
       * **_target_dir_** : The target directory is where the file(s) will be trasferred to.
       
-      Note: If the **_direction_** is ``get``, then **_target_dir_** will on the local machine and **_source_dir_** will be on the remote machine. If the **_direction_** is ``send``, then the other way around. 
+      If the **_direction_** is ``get``, then **_target_dir_** will on the local machine and **_source_dir_** will be on the remote machine. If the **_direction_** is ``send``, then the other way around. 
     
-    Example of a **scp** action:
-    ```python
-    "scp_remote_files_to_local_dir" : {
-        "action" : "scp",
-        "direction" : "get",
-        "password_prompt" : "password: ",
-        "progress_prompt" : "ETA",
-        "source_dir" : "{remote_working_dir}",
-        "source_files" : "{file_name}",
-        "target_dir" : "{local_target_dir}"
-    }
-    ```
     ***NOTE:*** If you have multiple actions in a config file, the above arguments/parameters can be defined in the **variables** or **constants** section of a config file, instead of repeating on each of the actions. Refer config file description below for details on **variables** and **constants** sections.
     
 **Usage:**
@@ -104,7 +67,9 @@ optional arguments:
     
 ## 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
 
-A config file is a JSON format file with a set of actions configured. This config file is passed to the [remote.py] program to execute all the set of actions.
+A config file is a JSON format file with a set of actions configured. This config file is passed to the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program to execute all the set of actions.
+
+**The [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program is intelligent to run each of the actions for that many iterations as defined by the number of values for each of the variables used in the action.**
 
 A sample config file: [conf/simple_local_ssh_scp_actions.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/conf/simple_local_ssh_scp_actions.json)
 
@@ -135,13 +100,13 @@ Each config file has below sections defined as a JSON elements:
 }
 ```
     
-**{run_id}** variable is automatically provided by the **remote.py** program as ``RID_YYYYMMDD_HHMMSS_UTC`` with the UTC timestamp when the program is run. This can be used to identify an instance of the run as the value will be unique.
+**{run_id}** variable is automatically provided by the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program as ``RID_YYYYMMDD_HHMMSS_UTC`` with the UTC timestamp when the program is run. This can be used to identify an instance of the run as the value will be unique.
 
-Both **variables** and **constants** are treated the same way by the **remote.py** program. This is separated only for the convenience of *programatically* replaing the **variables** section and still retaining all the variables defined in the **constants** section.
+Both **variables** and **constants** are treated the same way by the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program. This is separated only for the convenience of *programatically* replacing the **variables** section and still retaining all the variables defined in the **constants** section.
 
-For example, the **hosts_from_ambari_api.py** script reads the Ambari Database, retrieves the hostnames and log file directories for a selected SERVICE, reads the supplied confif file and replaces the **variables** section with the new hostnames/usernames/passwords information and invokes the **remote.py** program.
+For example, the [hosts_from_ambari_api.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/hosts_from_ambari_api.py) script reads the Ambari Database, retrieves the hostnames and log file directories for a selected SERVICE, reads the supplied config file, replaces the **variables** section with the retrieved hostnames/usernames/passwords information and invokes the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program.
 
-Similarly, the **hosts_from_etc_hosts_file.py** sript reads the **/etc/hosts** file and gets the list of hostnames cluster hostnames; then replaces that info in the **variables** section and runs the **remote.py** program.
+Similarly, the [hosts_from_etc_hosts_file.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/hosts_from_etc_hosts_file.py) script reads the **/etc/hosts** file and gets the list of cluster hostnames; then replaces that info in the **variables** section and runs the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program.
 
 ### 2.2. **main** section
   
