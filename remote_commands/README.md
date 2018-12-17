@@ -64,6 +64,14 @@ optional arguments:
                       of running certain non-recoverable commands 
                       like "rm -fr"
 ```
+**Sample command:**
+Please change the variables section of [conf/simple_local_ssh_scp_actions.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/conf/simple_local_ssh_scp_actions.json) config file to match your environment and hostnames.
+
+Then you may run the **remote.py** program as:
+```
+python remote.py -f conf/simple_local_ssh_scp_actions.json
+```
+
     
 ## 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
 
@@ -248,7 +256,8 @@ I am tired to explain this; please figure it out as an exercise :-)
     "target_dir" : "{local_target_dir}"
 }
 ```
-
+A sample output screenshot:
+[sample_output.jpg](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/sample_output.jpg)
 
 
 
