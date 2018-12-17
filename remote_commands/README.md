@@ -113,7 +113,7 @@ A sample config file: [conf/simple_local_ssh_scp_actions.json](https://github.co
 
 Each config has below sections defined as a JSON element:
 
-  * **variables** and **constants** section
+#### **variables** and **constants** section
   
     These are optional sections (but very useful) to define variables which can be used as arguments to the actions, values for the arguments and also in the commands. A variable can be used by surrounding inside two curly brackets.
     ```
@@ -144,7 +144,7 @@ Each config has below sections defined as a JSON element:
 
     Similarly, the **hosts_from_etc_hosts_file.py** sript reads the **/etc/hosts** file and gets the list of hostnames cluster hostnames; then replaces that info in the **variables** section and runs the **remote.py** program.
 
-  * **main** section
+#### **main** section
   
     This is the point of entry of the actions. This section defines a list of action names, which are defined in the config files. The program will run the actions in the provided order.
     ```
@@ -157,7 +157,8 @@ Each config has below sections defined as a JSON element:
     ```
     All of these actions should be defined in the config file (shown below).
 
-    * **action definitions** 
+#### **action definitions** 
+
     ```
     "create_local_dir" : {
         "action" : "local",
