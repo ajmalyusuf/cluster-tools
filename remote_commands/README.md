@@ -19,7 +19,7 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_action_** : a value of "**local**" for local action
       * **_commands_** : list of bash commands to be executed on the local host
     
-    For example **local** action named '*create_local_dir*' with two bash commands would look like:
+    For example, a **local** action named '*create_local_dir*' with two bash commands would look like:
     ```python
     "create_local_dir" : {
         "action" : "local",
@@ -36,8 +36,23 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_hostname_** : hostname of the remote machine
       * **_username_** : username on the remote machine
       * **_password_** : password for the given username
-      * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be _**_password: **_.
+      * **_shell_prompt_** : the regex pattern for the ssh shell prompt from the remote server. In most Linux flavours, this will be **_\$ $_**.
+      * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be **_password: _**.
       * **_sudo_password_prompt_** : the regex pattern for the password prompt, when a sudo command is run. In most Linux flavours, this will be "**_password for {username}: _**".
+      
+    Example of a **ssh** action:
+    ```python
+    "create_remote_files" : {
+        "action" : "ssh",
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+        "commands" : [
+            "cd {remote_working_dir}",
+            "echo \"This line is written by the remote program\" > {file_name}"
+        ]
+    },
+    ```
   
   * __scp__ action
    
@@ -52,7 +67,20 @@ This is the heart of the tool. This module takes a config file in JSON format (e
       * **_source_files_** : filename (supports unix wild-cards) or a list of filenames 
       * **_target_dir_** : The target directory is where the file(s) will be trasferred to. 
       If the _direction_ is **get**, then *target_dir* will on the local machine and *source_dir* will be on the remote machine. If the _direction_ is **send**, then the other way. 
-        
+    
+    Example of a **scp** action:
+    ```python
+    "scp_remote_files_to_local_dir" : {
+        "action" : "scp",
+        "direction" : "get",
+        "password_prompt" : "password: ",
+        "progress_prompt" : "ETA",
+        "source_dir" : "{remote_working_dir}",
+        "source_files" : "{file_name}",
+        "target_dir" : "{local_target_dir}"
+    }
+    ```   
+    
 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
 
 A config file is a JSON format file with set of actions configured. 
