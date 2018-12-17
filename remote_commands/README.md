@@ -16,8 +16,8 @@ This is the heart of the tool. This module takes a config file in JSON format (e
   * __local__ action
    
     A *local* action will perform the list of commands on the local machine where the program is run. Below are the supported arguments/parameters:
-      * _action_ : a value of "**local**" for local action
-      * _commands_ : list of bash commands to be executed on the local host
+      * **_action_** : a value of "**local**" for local action
+      * **_commands_** : list of bash commands to be executed on the local host
     
     For example **local** action named '*create_local_dir*' with two bash commands would look like:
     ```python
@@ -29,32 +29,33 @@ This is the heart of the tool. This module takes a config file in JSON format (e
         ]
     },
     ```
-
+    
   * __ssh__ action
    
-    A *ssh* action will perform the list of commands on the remote machine specified using the parameter *{hostname}*. Below are the supported arguments/parameters:
-      * _{hostname}_ : hostname of the remote machine
-      * _{username}_ : username on the remote machine
-      * _{password}_ : password for the given username
-      * _{password_prompt}_ : the regex pattern for the scp password prompt of the remote server. In most Linux flavours, this will be "password: ".
+    A *ssh* action will perform the list of commands on the remote machine specified using the parameter *hostname*. Below are the supported arguments/parameters:
+      * **_hostname_** : hostname of the remote machine
+      * **_username_** : username on the remote machine
+      * **_password_** : password for the given username
+      * **_password_prompt_** : the regex pattern for the ssh password prompt from the remote server. In most Linux flavours, this will be _**_password: **_.
+      * **_sudo_password_prompt_** : the regex pattern for the password prompt, when a sudo command is run. In most Linux flavours, this will be "**_password for {username}: _**".
   
   * __scp__ action
    
     A *scp* action is used to transfer files from or to a remote machine. The supported arguments are:
-      * _{hostname}_ : hostname of the remote machine
-      * _{username}_ : username on the remote machine
-      * _{password}_ : password for the given username
-      * _{direction}_ : A value of _send_ or _get_. Default value is _get_, if not specified
-      * _{password_prompt}_ : the regex pattern for the scp password prompt of the remote server. In most Linux flavours, this will be "password: ".
-      * _{progress_prompt}_ : the regex pattern for the file transfer progress. Most scp implementation will have the progress prompt pattern as "ETA".
-      * _{source_dir}_ : source directory
-      * _{source_files}_ : filename (supports unix wild-cards) or a list of filenames 
-      * _{target_dir}_ : The target directory is where the file(s) will be trasferred to. 
-      If the _direction_ is **get** \[default\, in not specified], then *{target_dir}* will on the local machine and the *{source_dir}* will be on the remote server.
+      * **_hostname_** : hostname of the remote machine
+      * **_username_** : username on the remote machine
+      * **_password_** : password for the given username
+      * **_direction_** : A value of _send_ or _get_. Default value is **_get_**, if not specified
+      * **_password_prompt_** : the regex pattern for the scp password prompt from the remote server. In most Linux flavours, this will be "**_password: _**".
+      * **_progress_prompt_** : the regex pattern for the file transfer progress. Most scp implementation will have the progress prompt pattern as "**_.\*ETA_**".
+      * **_source_dir_** : source directory
+      * **_source_files_** : filename (supports unix wild-cards) or a list of filenames 
+      * **_target_dir_** : The target directory is where the file(s) will be trasferred to. 
+      If the _direction_ is **get**, then *target_dir* will on the local machine and *source_dir* will be on the remote machine. If the _direction_ is **send**, then the other way. 
         
 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
 
-These are JSON format files with instructions on list of commands. 
+A config file is a JSON format file with set of actions configured. 
 stored in 'conf' directory
 - Contains the variables and script definitions to configure a set actions and commands to be performed on local or
 remote host machines
