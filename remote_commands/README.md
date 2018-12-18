@@ -73,7 +73,7 @@ python remote.py -f conf/simple_local_ssh_scp_actions.json
 ```
 
     
-## 2. Config file [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf)
+## 2. Config file (examples in [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf) folder)
 
 A config file is a JSON format file with a set of actions configured. This config file is passed to the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) program to execute all the set of actions.
 
