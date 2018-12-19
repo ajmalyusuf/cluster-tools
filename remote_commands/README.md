@@ -8,7 +8,7 @@ The package files are included in this project to eliminate any external depende
 
 ## 1. Framework module [remote.py](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/remote.py)
 
-This is the heart of the tool. This module takes a config file in JSON format (explained below) and executes the list of **actions** specified in the config file. The module supports three types of actions; **local**, **ssh** and **scp**.
+This is the heart and brain of the tool. This module takes a config file in JSON format (explained below) and executes the list of **actions** specified in the config file. The module supports three types of actions; **local**, **ssh** and **scp**.
 
   * __local__ action
    
