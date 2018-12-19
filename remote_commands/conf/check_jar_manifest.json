@@ -11,7 +11,6 @@
         "password_prompt" : "password: ",
         "sudo_password_prompt" : "password for {username}:",
 
-        "version" : "1.2.1000.2.*",
         "jar_type" : [ "exec", "metastore", "jdbc", "service", "beeline", "common" ],
         "jar_file" : "/usr/hdp/current/hive-client/lib/hive-{jar_type}.jar"
     },
