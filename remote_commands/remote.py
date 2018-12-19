@@ -475,7 +475,7 @@ def main():
     description = 'Version %s. \nScript to execute configured commands in local and remote hosts.' % version
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-f', '--conf-file', dest='conf_file', help='Name of the config file in JSON format', required=True)
-    parser.add_argument('--debug', help='With debug flag, the program will ONLY output all the resolved commands; but will NOT attempt to connect OR run any commands', action='store_true')
+    parser.add_argument('--debug', help='*NOT IMPLEMENTED YET* With debug flag, the program will ONLY echo/output all the resolved commands after connecting to the remote/local host; but will NOT attempt to run these commands. This is useful while configuring a new requirement to avoid unwanted impact of running certain non-recoverable commands like "rm -fr"', action='store_true')
     args = parser.parse_args()
 
     '''
