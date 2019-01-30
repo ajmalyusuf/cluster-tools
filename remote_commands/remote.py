@@ -17,37 +17,48 @@ import os
 import re
 import json
 import platform
+import logging
 import datetime
 import pprint
 import pexpect
 import argparse
 import itertools
 
+logger = logging.getLogger(__name__)
+
 # Change the default values for the below parameters
 # ==================================================
-version = '1.0'
-default_timeout_secs = 60
+version = '1.1'
+default_live_run = False
+default_variables = {
+    'timeout_secs' : '60',
+    'shell_prompt' : '\\$ $',
+    'password_prompt' : 'password: ',
+    'sudo_password_prompt' : 'password for {username}:',
+    'progress_prompt' : 'ETA'
+}
 default_options = '-o CheckHostIP=no -o LogLevel=quiet -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 # ==================================================
 
-_DEBUG_ = False
 var_regex = re.compile('({[ \t]*(\w+)[ \t]*})')
 NO_RECURSIONS = 10
 
 action_mandatory_params = {
-    "ssh" : ['hostname', 'username', 'password', 'password_prompt',
-             'shell_prompt', 'sudo_password_prompt:{password_prompt}'],
-    "scp" : ['hostname', 'username', 'password', 'password_prompt',
-             'progress_prompt', 'source_dir', 'source_files', 'target_dir'],
+    "ssh" : ['timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
+             'shell_prompt', 'sudo_password_prompt'],
+    "scp" : ['timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
+             'progress_prompt', 'direction', 'source_dir', 'source_files', 'target_dir'],
     "local" : []
 }
 
 class tcolors:
     HEADER = '\033[95m'
+    BOLDHEADER = '\033[1m\033[95m'
     OKBLUE = '\033[94m'
     LCYAN = '\033[96m'
     WHITE = '\033[97m'
     LGREEN = '\033[92m'
+    BOLDLGREEN = '\033[1m\033[92m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
@@ -75,7 +86,7 @@ def double_colored_print(f_msg, s_msg, f_color, s_color):
 def load_config(config_json_file):
     try:
         with open(config_json_file) as json_data_file:
-            double_colored_print('\nReading config from: ', config_json_file, tcolors.BOLD, tcolors.HEADER)
+            double_colored_print('\nReading config from: ', config_json_file, tcolors.BOLD, tcolors.BOLDLGREEN)
             colored_print('', tcolors.NORMAL)
             return json.load(json_data_file)
     except Exception as e:
@@ -107,6 +118,10 @@ def convert_group_list_to_dict(variables):
             if groupname not in new_variables:
                 new_variables[groupname] = dict_list_value
             else:
+                if len(dict_list_value) != len(new_variables[groupname]):
+                    double_colored_print('Unable to resolve the group.parameter: ', '{0}.{1}'.format(groupname,key), tcolors.FAIL, tcolors.WARNING)
+                    colored_print('Reason: All parameters within a group should have the same number of items. Exiting...', tcolors.FAIL)
+                    sys.exit(1)
                 for index, val in enumerate(new_variables[groupname]):
                     val.update(dict_list_value[index])
             variable_names.append(key)
@@ -115,14 +130,26 @@ def convert_group_list_to_dict(variables):
             variable_names.append(variable)
     return variable_names, new_variables
 
-def get_timeout_secs(variables_dict):
-    timeout_secs = default_timeout_secs
-    if 'timeout_secs' in variables_dict:
-        try:
-            timeout_secs =  int(variables_dict['timeout_secs'])
-        except:
-            colored_print("WARNING: 'timeout_secs' should be a number: Using default value of {0} secs...".format(default_timeout_secs), tcolors.WARNING)
+def get_timeout_secs(timeout_value):
+    try:
+        timeout_secs =  int(timeout_value)
+    except:
+        colored_print("WARNING: 'timeout_secs' should be a number: \
+                       Using default value of {0} secs...".format(default_variables['timeout_secs']), tcolors.WARNING)
+        timeout_secs = default_variables['timeout_secs']
     return timeout_secs
+
+def populate_defaults(variables):
+    if 'run_id' in variables:
+        run_id = variables['run_id']
+    else:
+        utc_datetime = datetime.datetime.utcnow()
+        run_id = utc_datetime.strftime('RID_%Y%m%d_%H%M%S_UTC')
+        variables['run_id'] = run_id
+    for defaut_variable in default_variables:
+        if defaut_variable not in variables:
+            variables[defaut_variable] = default_variables[defaut_variable]
+    return run_id, variables
 
 def load_variables(config):
     config_constants = config['constants'] if 'constants' in config else {}
@@ -130,21 +157,11 @@ def load_variables(config):
     variables = {}
     variables.update(config_constants)
     variables.update(config_variables)
-
-    if 'run_id' in variables:
-        run_id = variables['run_id']
-    else:
-        utc_datetime = datetime.datetime.utcnow()
-        run_id = utc_datetime.strftime('RID_%Y%m%d_%H%M%S_UTC')
-        variables['run_id'] = run_id
-    variables['timeout_secs'] = get_timeout_secs(variables)
+    run_id, variables = populate_defaults(variables)
 
     variable_names, dict_variables = convert_group_list_to_dict(variables)
     variable_values = cartition_product(dict_variables)
-    if _DEBUG_:
-        print '-------- load_variables : Before ({0})-------'.format(len(variable_values))
-        for i in variable_values:
-            print i
+
     for variable in variable_values:
         for value in variable:
             if isinstance(variable[value], (str, unicode)):
@@ -162,12 +179,6 @@ def load_variables(config):
                         colored_print('Exiting...', tcolors.FAIL)
                         sys.exit(1)
                     depth += 1
-    if _DEBUG_:
-        print '-------- load_variables : After ({0})--------'.format(len(variable_values))
-        for i in variable_values:
-            print i
-        print '--------- load_variables : End --------'
-        print variable_names
     return run_id, variable_names, variable_values
 
 def cartition_product(variables):
@@ -216,6 +227,11 @@ def remote_scp(hostname, username, password, password_prompt, progress_prompt, s
         sys.exit(1)
     username_at_host = '{0}@{1}'.format(username, hostname)
     command = format_str.format(default_options, username_at_host, source, target_dir)
+
+    if not default_live_run:
+        double_colored_print('Command for live-run:\n', command, tcolors.BOLD, tcolors.WARNING)
+        return
+
     double_colored_print('Transferring... ', command, tcolors.BOLD, tcolors.WARNING)
     try:
         connection = pexpect.spawn(command, timeout=timeout)
@@ -248,12 +264,17 @@ def expect_spawn(command, shell_prompt, timeout, password_prompt = None, passwor
         colored_print('Connection established...\n', tcolors.WHITE)
         return connection
     except Exception as e:
-        colored_print('\nUnable to ssh : {0}'.format(str(e)), tcolors.FAIL)
+        msg = "Timed out waiting for the prompt: '{0}'\n".format(shell_prompt)
+        double_colored_print('\nUnable to ssh : ', msg, tcolors.BOLD, tcolors.FAIL)
+        double_colored_print('Exception : ', str(e), tcolors.BOLD, tcolors.FAIL)
         return None
 
 def run_ssh_command(connection, command, shell_prompt, password_prompt = None, password = None):
-    double_colored_print('Running command: ', command, tcolors.BOLD, tcolors.WARNING)
+    if not default_live_run:
+        double_colored_print('Command for live-run: ', command, tcolors.BOLD, tcolors.WARNING)
+        return
 
+    double_colored_print('Running command: ', command, tcolors.BOLD, tcolors.WARNING)
     connection.sendline(command)
     if password_prompt:
         ret = connection.expect([password_prompt, shell_prompt, pexpect.EOF])
@@ -265,7 +286,8 @@ def run_ssh_command(connection, command, shell_prompt, password_prompt = None, p
             connection.expect([shell_prompt, pexpect.EOF])
     before = trim_cr(connection.before)
     after = trim_cr(connection.after)
-    colored_print('{0}{1}'.format(before, after), tcolors.LCYAN)
+    #colored_print('{0}{1}'.format(before, after), tcolors.LCYAN)
+    print '{0}{1}'.format(before, after)
 
 def clean_and_split_params(step):
     action_params = set()
@@ -284,8 +306,6 @@ def clean_and_split_params(step):
                     matches = var_regex.finditer(item)
                     for match in matches:
                         action_params.add(match.group(2))
-    if step['action'] == 'scp' or step['action'] == 'ssh':
-        action_params.update([ 'timeout_secs' ])
     commands_params = set()
     if 'commands' in step:
         step['commands'] = [x for x in step['commands'] if not x.startswith(('#','-'))]
@@ -324,25 +344,21 @@ def get_filtered_variables(filter_dict, variables):
 
 def validate_action_parameters(step, mandatory_params, variable_names):
     for item in mandatory_params:
-        if ':' in item:
-            item, substitute = item.split(':', 1)
-        else:
-            substitute = None
         if item not in step:
             if item in variable_names:
                 step[item] = '{' + item + '}'
-            elif substitute in variable_names:
-                step[item] = '{' + substitute + '}'
             else:
                 double_colored_print('Skipping this action...\nReason: Missing configuration: ',
                                                         item, tcolors.FAIL, tcolors.WARNING)
                 return False
+        elif item == 'timeout_secs':
+            step[item] = str(step[item])
     return True
 
 def validate_all_variables(params, variable_names):
     for param in params:
         if param not in variable_names:
-            double_colored_print('Skipping this action...\nReason: Missing configuration: ',
+            double_colored_print('Skipping this action...\nReason: Unable to resolve: ',
                                                         param, tcolors.FAIL, tcolors.WARNING)
             return False
     return True
@@ -350,25 +366,21 @@ def validate_all_variables(params, variable_names):
 def execute_action(action, step, variable_names, variable_values):
     if not validate_action_parameters(step, action_mandatory_params[action], variable_names):
         return
+
     action_params, commands_params, combined_params = clean_and_split_params(step)
     if not validate_all_variables(combined_params, variable_names):
         return
 
-    if _DEBUG_:
-        print '------- Params'
-        print 'Action Params : ', action_params
-        print 'Command Params : ', commands_params
-        print 'Combined Params : ', combined_params
-        print '------- variable_names'
-        print variable_names
-
     if step['action'] == 'local':
         dist_commands_variables = get_distinct_subset(commands_params, variable_values)
         for variable in dist_commands_variables:
-            if _DEBUG_:
-                print '>>>>>>>>>>> command_variable : ', variable
             for command in step['commands']:
                 command = format(command, variable)
+
+                if not default_live_run:
+                    double_colored_print('Command for live-run: ', command, tcolors.BOLD, tcolors.WARNING)
+                    continue
+
                 double_colored_print('Running command: ', command, tcolors.BOLD, tcolors.WARNING)
                 (command_output, exitstatus) = pexpect.run(command, withexitstatus=1)
                 colored_print('{0}'.format(command_output), tcolors.LCYAN)
@@ -379,22 +391,15 @@ def execute_action(action, step, variable_names, variable_values):
     elif step['action'] == 'scp':
         dist_combined_variables = get_distinct_subset(combined_params, variable_values)
         for variable in dist_combined_variables:
-            if _DEBUG_:
-                print '>>>>>>>>>>> combined_variable : ', variable
-            direction = 'get'
-            if 'direction' in step:
-                direction = format(step['direction'], variable)
-                if not (direction == 'get' or direction == 'send'):
-                    colored_print('Skipping this action...\nReason: Unsupported direction for scp: {0}'.format(direction), tcolors.FAIL)
-                    colored_print("Should be 'get' or 'send'", tcolors.FAIL)
-                    return
+            direction = format(step['direction'], variable)
+            if not (direction == 'get' or direction == 'send'):
+                colored_print('Skipping this action...\nReason: Unsupported direction for scp: {0}'.format(direction), tcolors.FAIL)
+                colored_print("Should be 'get' or 'send'", tcolors.FAIL)
+                return
             hostname = format(step['hostname'], variable)
             username = format(step['username'], variable)
             password = format(step['password'], variable)
-            if 'timeout_secs' in step:
-                timeout = get_timeout_secs(step)
-            else:
-                timeout = variable['timeout_secs']
+            timeout = get_timeout_secs(format(step['timeout_secs'], variable))
             password_prompt = format(step['password_prompt'], variable)
             progress_prompt = format(step['progress_prompt'], variable)
             source_dir = format(step['source_dir'], variable)
@@ -409,15 +414,11 @@ def execute_action(action, step, variable_names, variable_values):
         dist_action_variables = get_distinct_subset(action_params, variable_values)
         dist_combined_variables = get_distinct_subset(combined_params, variable_values)
         for act_variable in dist_action_variables:
-            if _DEBUG_:
-                print '>>>>>>>>>>> act_variable : ', act_variable
             hostname = format(step['hostname'], act_variable)
             username = format(step['username'], act_variable)
             password = format(step['password'], act_variable)
-            if 'timeout_secs' in step:
-                timeout = get_timeout_secs(step)
-            else:
-                timeout = act_variable['timeout_secs']
+            step['timeout_secs'] = format(step['timeout_secs'], act_variable)
+            timeout = get_timeout_secs(format(step['timeout_secs'], act_variable))
             password_prompt = format(step['password_prompt'], act_variable)
             sudo_password_prompt = format(step['sudo_password_prompt'], act_variable)
             shell_prompt = format(step['shell_prompt'], act_variable)
@@ -427,8 +428,6 @@ def execute_action(action, step, variable_names, variable_values):
                 continue
             dist_commands_variables = get_filtered_variables(act_variable, dist_combined_variables)
             for cmd_variable in dist_commands_variables:
-                if _DEBUG_:
-                    print '>>>>>>>>>>> cmd_variable : ', cmd_variable
                 for command in step['commands']:
                     combined_variables = {}
                     combined_variables.update(act_variable)
@@ -439,54 +438,78 @@ def execute_action(action, step, variable_names, variable_values):
                     else:
                         run_ssh_command(connection, command, shell_prompt)
             run_ssh_command(connection, 'exit', '.*')
+            connection.close()
     else:
         colored_print('Skipping this action...\nReason: Unsupported action: {0}'.format(step['action']), tcolors.FAIL)
 
-def execute(config):
+def execute(config, live_run):
     if not config or 'main' not in config:
         colored_print('Nothing configured to execute. Could not find "main" in the config.', tcolors.FAIL)
         sys.exit(1)
 
+    global default_live_run
+    if not default_live_run:
+        default_live_run = live_run
+
     run_id, variable_names, variable_values = load_variables(config)
 
     for index, step_name in enumerate(config['main']):
-        if step_name.startswith(('#', '-')):
-            colored_print("\n{0}. Skipping action... {1} (starting with '-' or '#')".format(index + 1, step_name), tcolors.HEADER)
+        if not step_name.strip():
+            colored_print("\n{0}. Skipping action... '{1}' : Blank action name not supported".format(index+1, step_name), tcolors.HEADER)
             continue
-        message = '\n{0}. Running action... {1}'.format(index + 1, step_name)
-        colored_print(message, tcolors.HEADER)
-        colored_print('{0}\n'.format('-'*(len(message)-1)), tcolors.HEADER)
+        if step_name.startswith(('#', '-')):
+            colored_print("\n{0}. Skipping action... '{1}' : Commented by prefixing with '-' or '#'".format(index+1, step_name), tcolors.HEADER)
+            continue
         if step_name not in config:
-            colored_print('Step "{0}" is not defined in the config file. Skipping the action...'.format(step_name), tcolors.FAIL)
+            colored_print("\n{0}. Skipping action... '{1}' : Not defined in the config file".format(index+1, step_name), tcolors.HEADER)
             continue
         step = config[step_name]
         if 'action' not in step:
-            colored_print('Step "{0}" does not have an action type. Skipping the action...'.format(step_name), tcolors.FAIL)
+            colored_print("\n{0}. Skipping action... '{1}' : Missing action type".format(index+1, step_name), tcolors.HEADER)
             continue
         action = step['action']
         if action not in action_mandatory_params.keys():
-            colored_print('Step "{0}": Unsupported action type: {1}. Skipping the action...'.format(step_name, action), tcolors.FAIL)
+            colored_print("\n{0}. Skipping action... '{1}' : Unsupported action type '{2}'".format(index+1, step_name, action), tcolors.HEADER)
             continue
+
+        message1 = '\n{0}. Running action... '.format(index + 1)
+        message2 = '{0} ({1})'.format(step_name, action)
+        double_colored_print(message1, message2, tcolors.HEADER, tcolors.BOLDHEADER)
+        colored_print('{0}\n'.format('-'*(len(message1 + message2)-1)), tcolors.HEADER)
+
         execute_action(action, step, variable_names, variable_values)
-    colored_print('\nSuccessfully completed with RUN ID : {0}'.format(run_id), tcolors.BOLD)
+    double_colored_print('\nSuccessfully completed with RUN ID : ', run_id, tcolors.BOLD, tcolors.BOLDLGREEN)
     colored_print('', tcolors.BOLD)
 
 def main():
-    description = 'Version %s. \nScript to execute configured commands in local and remote hosts.' % version
+    live_run_desc = 'The program is capable of running any UNIX command on any host with credentials. ' \
+                    'To AVOID any unwanted consequences of running certain non-recoverable commands like "rm -fr", ' \
+                    'the program will EXECUTE the commands only if this flag is enabled. If False, the program ' \
+                    'will ONLY output all the resolved commands.'
+    description = 'Version %s. \nScript to execute configured commands in local and remote hosts. ' \
+                  'The program is capable of running any UNIX command on any host with credentials.' % version
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-f', '--conf-file', dest='conf_file', help='Name of the config file in JSON format', required=True)
-    parser.add_argument('--debug', help='*NOT IMPLEMENTED YET* With debug flag, the program will ONLY echo/output all the resolved commands after connecting to the remote/local host; but will NOT attempt to run these commands. This is useful while configuring a new requirement to avoid unwanted impact of running certain non-recoverable commands like "rm -fr"', action='store_true')
+    parser.add_argument('--live-run', dest='live_run', help=live_run_desc, action='store_true')
     args = parser.parse_args()
 
     '''
-    if args.debug:
-        _DEBUG_ = True
-    else:
-        __import__(pexpect)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    logger.info("This is info")
+    logger.warning("This is warning")
+    logger.error("This is error")
+    logger.debug("This is debug")
+    logger.critical("This is critical")
     '''
 
     config = load_config(args.conf_file)
-    execute(config)
+    execute(config, args.live_run)
 
 if __name__ == "__main__":
 	main()

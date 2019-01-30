@@ -272,11 +272,15 @@ def execute(username, password, clustername, base_url, selected_service, selecte
 
 def main(config_filename = None):
     description = 'Version %s. \nScript to pull service configs and logs from cluster' % version
+    live_run_desc = 'The program is capable of running any UNIX command on any host with credentials. ' \
+                    'To AVOID any unwanted consequences of running certain non-recoverable commands like "rm -fr", ' \
+                    'the program will EXECUTE the commands only if this flag is enabled. If False, the program ' \
+                    'will ONLY output all the resolved commands.'
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-a', '--ambari_host', help='IP/Hostname of the Ambari Server', required=True)
-    parser.add_argument('-p', '--port', help='Port number for Ambari Server. Default: 8080', required=False)
+    parser.add_argument('-r', '--port', help='Port number for Ambari Server. Default: 8080', required=False)
     parser.add_argument('-u', '--username', help='Username for Ambari UI. Default: admin.', required=False)
-    parser.add_argument('-w', '--password', help='Password for Ambari UI. Default: admin', required=False)
+    parser.add_argument('-p', '--password', help='Password for Ambari UI. Default: admin', required=False)
     parser.add_argument('-n', '--clustername', help='Name of the cluster. Default: First available cluster name in Ambari', required=False)
     parser.add_argument('-s', '--service', help='Service Name', required=False)
     parser.add_argument('-c', '--component', help='Component Name', required=False)
@@ -284,6 +288,7 @@ def main(config_filename = None):
     parser.add_argument('--ssh-user', dest='ssh_user', help='SSH username to connect to hosts', required=False)
     parser.add_argument('--ssh-pass', dest='ssh_pass', help='SSH password to connect to hosts', required=False)
     parser.add_argument('--run-id', dest='run_id', help='Unique RUN ID. Default: Will be automatically generated.', required=False)
+    parser.add_argument('--live-run', dest='live_run', help=live_run_desc, action='store_true')
     args = parser.parse_args()
 
     ambari_server = args.ambari_host
