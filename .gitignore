@@ -1,7 +1,6 @@
 .DS_Store
-hosted/runbookFramework/runbook_result_data.json
-hosted/runbookFramework/.~runbook.json
-hosted/runbookFramework/built-in/example_data/extract_dir/
+remote_commands/interactive.json
+remote_commands/my_credentials.csv
 
 # intellij files
 *.iml
