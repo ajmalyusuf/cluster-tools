@@ -1,0 +1,43 @@
+{
+    "variables" : {
+        "hostname" : "kcspark-ssh.azurehdinsight.net",
+        "username" : "sshuser",
+        "password" : "Password1.."
+    },
+
+    "constants" : {
+        "remote_program_dir" : "/home/{username}/remote_program",
+        "src_dir" : "./",
+        "src_files" : "*"
+    },
+
+    "main" : [
+        "create_program_dir",
+        "upload_program",
+        "list_uploaded_program_dir"
+    ],
+
+    "create_program_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {remote_program_dir}",
+            "mkdir -p {remote_program_dir}"
+        ]
+    },
+
+    "upload_program" : {
+        "action" : "scp",
+        "direction" : "send",
+        "source_dir" : "{src_dir}",
+        "source_file" : "{src_files}",
+        "target_dir" : "{remote_program_dir}"
+    },
+
+    "list_uploaded_program_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "ls -al {remote_program_dir}"
+        ]
+    }
+}
+

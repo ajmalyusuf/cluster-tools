@@ -1,10 +1,10 @@
 {
     "variables" : {
-        "hostname" : "kchdp-ssh.azurehdinsight.net",
+        "hostname" : "sparkdansha-ssh.azurehdinsight.net",
         "--hostname" : "dfs1-dev.openstacklocal",
         "username" : "sshuser",
         "--username" : "ajmal",
-        "password" : "Password1..",
+        "password" : "AjmalRocks2019!",
         "--password" : "ajmal"
     },
 
@@ -51,7 +51,8 @@
         "action" : "ssh",
         "commands" : [
             "cd {remote_program_dir}",
-            "python ambari_cluster_hosts.py -a localhost -u test -w test -s HDFS -c ALL --ssh-user sshuser --ssh-pass Password1.. -f conf/copy_and_tar_logs_to_headnodehost.json --run-id {run_id}",
+            "ls -al",
+            "python hosts_from_ambari_api.py -a headnodehost -u admin -w {password} -s HDFS -c ALL --ssh-user {username} --ssh-pass {password} -f conf/copy_and_tar_logs_to_headnodehost.json --run-id {run_id}",
             "rm -fr {remote_program_dir}"
         ]
     },

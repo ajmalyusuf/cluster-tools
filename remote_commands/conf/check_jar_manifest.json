@@ -1,8 +1,8 @@
 {
     "variables" : {
-        "credentials.hostname" : [ "kchdp-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
+        "credentials.hostname" : [ "sparkdansha-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
         "credentials.username" : [ "sshuser", "ajmal" ],
-        "credentials.password" : [ "Password1..", "ajmal" ]
+        "credentials.password" : [ "AjmalRocks2019!", "ajmal" ]
     },
 
     "constants" : {

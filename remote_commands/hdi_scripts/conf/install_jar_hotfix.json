@@ -1,0 +1,72 @@
+{
+    "constants" : {
+        "hotfix_hdp_version" : "2.6.3.2-14",
+        "installed_hdp_version" : "2.6.5.3005-27",
+        "target_lib_dir" : "/usr/hdp/{installed_hdp_version}/hive/lib",
+        "install_lib_mask" : "hive-*.jar",
+        "local_hotfix_jar_dir" : "/home/{username}/Shire-Hive-2.6.3.2-14",
+
+        "hotfix_install_data_dir" : "/home/{username}/{run_id}_HOTFIX_INSTALLATION",
+        "hotfix_jars" : "hotfix_jars",
+        "original_jars" : "original_jars",
+        "substitute_cmd" : "sed 's/{hotfix_hdp_version}/{installed_hdp_version}/g'",
+
+        "new_target_lib_dir" : "{target_lib_dir}_new"
+    },
+
+    "main" : [
+        "create_install_backup_dir",
+        "upload_hotfix_jars",
+        "take_back_and_install",
+        "swap_target_lib_with_new_lib"
+    ],
+
+    "create_install_backup_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {hotfix_install_data_dir}",
+            "mkdir -p {hotfix_install_data_dir}/{original_jars}",
+            "cp -r {target_lib_dir} {hotfix_install_data_dir}/{original_jars}/",
+            "sudo cp -r {target_lib_dir} {target_lib_dir}_original_{run_id}",
+
+            "mkdir -p {hotfix_install_data_dir}/{hotfix_jars}"
+        ]
+    },
+
+    "upload_hotfix_jars" : {
+        "action" : "scp",
+        "direction" : "send",
+        "source_dir" : "{local_hotfix_jar_dir}",
+        "source_files" : [ "*" ],
+        "target_dir" : "{hotfix_install_data_dir}/{hotfix_jars}"
+    },
+
+    "take_back_and_install" : {
+        "action" : "ssh",
+        "commands" : [
+            "sudo rm -fr {new_target_lib_dir}",
+            "sudo cp -r {target_lib_dir} {new_target_lib_dir}",
+            "cd {hotfix_install_data_dir}/{hotfix_jars}",
+
+            "ls -al {new_target_lib_dir}/{install_lib_mask} > ls_before.out",
+            "> md5sum_before.out; for i in `ls {new_target_lib_dir}/{install_lib_mask} | sort`; do md5sum $i >> md5sum_before.out; done",
+            "> manifest_after.out; for i in `ls {new_target_lib_dir}/{install_lib_mask} | sort`; do mf=`unzip -q -c $i META-INF/MANIFEST.MF | grep \"Specification-Version\"`; echo \"$i - $mf\" >> manifest_before.out; done",
+
+            "for i in `ls {install_lib_mask}`; do target=`echo $i | {substitute_cmd}`; echo \"Copying $i {new_target_lib_dir}/$target\"; sudo cp $i {new_target_lib_dir}/$target; done",
+
+            "ls -al {new_target_lib_dir}/{install_lib_mask} > ls_after.out",
+            "> md5sum_after.out; for i in `ls {new_target_lib_dir}/{install_lib_mask}`; do md5sum $i >> md5sum_after.out; done",
+            "> manifest_after.out; for i in `ls {new_target_lib_dir}/{install_lib_mask}`; do mf=`unzip -q -c $i META-INF/MANIFEST.MF | grep \"Specification-Version\"`; echo \"$i - $mf\" >> manifest_after.out; done",
+            "diff md5sum_before.out md5sum_after.out",
+            "diff manifest_before.out manifest_after.out"
+        ]
+    },
+
+    "swap_target_lib_with_new_lib" : {
+        "action" : "ssh",
+        "commands" : [
+            "sudo mv {target_lib_dir} {target_lib_dir}_original_{run_id}",
+            "sudo mv {new_target_lib_dir} {target_lib_dir}"
+        ]
+    }
+}

@@ -1,8 +1,8 @@
 {
     "variables" : {
-        "credentials.hostname" : [ "kchdp-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
-        "credentials.username" : [ "sshuser", "ajmal" ],
-        "credentials.password" : [ "Password1..", "ajmal" ]
+        "credentials.hostname" : [ "dfs1-dev.openstacklocal", "dfs2-dev.openstacklocal" ],
+        "credentials.username" : [ "ajmal", "ajmal" ],
+        "credentials.password" : [ "ajmal", "ajmal" ]
     },
 
     "constants" : {
@@ -10,7 +10,8 @@
         "shell_prompt" : "\\$ $",
         "password_prompt" : "password: ",
         "sudo_password_prompt" : "password for {username}:",
-        "agent_command" : "ambari-agent status"
+
+        "agent_command" : "sudo ambari-agent status"
     },
 
     "main" : [
@@ -21,7 +22,7 @@
         "action" : "ssh",
         "commands" : [
             "hostname -f",
-            "sudo {agent_command}"
+            "{agent_command}"
         ]
     }
 }

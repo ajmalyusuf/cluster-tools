@@ -31,13 +31,19 @@ logger = logging.getLogger(__name__)
 version = '1.1'
 default_live_run = False
 default_variables = {
+    'shell' : 'bash',
     'timeout_secs' : '60',
     'shell_prompt' : '\\$ $',
     'password_prompt' : 'password: ',
     'sudo_password_prompt' : 'password for {username}:',
     'progress_prompt' : 'ETA'
 }
-default_options = '-o CheckHostIP=no -o LogLevel=quiet -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+default_options = '-o CheckHostIP=no -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=quiet'
+scp_format = {
+    'get' : "{shell} -c 'scp -r {options} {username}@{hostname}:{source} {target_dir}'",
+    'send' : "{shell} -c 'scp -r {options} {source} {username}@{hostname}:{target_dir}'"
+}
+ssh_format = 'ssh {options} {username}@{hostname}'
 # ==================================================
 
 var_regex = re.compile('({[ \t]*(\w+)[ \t]*})')
@@ -46,9 +52,11 @@ NO_RECURSIONS = 10
 action_mandatory_params = {
     "ssh" : ['timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
              'shell_prompt', 'sudo_password_prompt'],
-    "scp" : ['timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
-             'progress_prompt', 'direction', 'source_dir', 'source_files', 'target_dir'],
-    "local" : []
+    "scp" : ['shell', 'timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
+             'progress_prompt', 'direction', 'source_dir', 'source_file', 'target_dir'],
+    "ssh-int" : ['timeout_secs', 'hostname', 'username', 'password', 'password_prompt',
+             'shell_prompt', 'sudo_password_prompt'],
+    "local" : ['shell']
 }
 
 class tcolors:
@@ -60,12 +68,27 @@ class tcolors:
     LGREEN = '\033[92m'
     BOLDLGREEN = '\033[1m\033[92m'
     WARNING = '\033[93m'
-    FAIL = '\033[91m'
+    FAIL = '\033[1m\033[91m'
     ENDC = '\033[0m'
     NORMAL = '\033[0m'
     BOLD = '\033[1m'
     ITALIC = '\033[3m'
     UNDERLINE = '\033[4m'
+
+def print_json(output, heading = None):
+    if heading:
+        print heading
+        print '=' * len(heading)
+    print json.dumps(output, indent=4)
+
+def dump_json(output, filename):
+    try:
+        with open(filename, 'w') as outfile:
+            double_colored_print('Writing config file: ', filename + '\n', tcolors.BOLD, tcolors.BOLDLGREEN)
+            json.dump(output, outfile, indent=4)
+    except Exception as e:
+        colored_print('Unable to write JSON config file: ', filename, tcolors.FAIL, tcolors.WARNING)
+        colored_print('Reason: {0}'.format(str(e)), tcolors.FAIL)
 
 def colored_print_without_newline(message, color):
     if platform.system() == 'Windows':
@@ -132,12 +155,11 @@ def convert_group_list_to_dict(variables):
 
 def get_timeout_secs(timeout_value):
     try:
-        timeout_secs =  int(timeout_value)
+        return int(timeout_value)
     except:
         colored_print("WARNING: 'timeout_secs' should be a number: \
                        Using default value of {0} secs...".format(default_variables['timeout_secs']), tcolors.WARNING)
-        timeout_secs = default_variables['timeout_secs']
-    return timeout_secs
+        return default_variables['timeout_secs']
 
 def populate_defaults(variables):
     if 'run_id' in variables:
@@ -161,7 +183,7 @@ def load_variables(config):
 
     variable_names, dict_variables = convert_group_list_to_dict(variables)
     variable_values = cartition_product(dict_variables)
-
+        
     for variable in variable_values:
         for value in variable:
             if isinstance(variable[value], (str, unicode)):
@@ -190,7 +212,6 @@ def cartition_product(variables):
             valuelist.append(variables[i])
         else:
             valuelist.append([ variables[i] ])
-    
     var_list = []
     for elements in itertools.product(*valuelist):
         item = {}
@@ -199,7 +220,8 @@ def cartition_product(variables):
                 for key in element:
                     item[key] = element[key]
             else:
-                item[keylist[index]] = element
+                if keylist[index] not in item: # Give preference to item in dict
+                    item[keylist[index]] = element
         var_list.append(item)
     return var_list
 
@@ -212,39 +234,32 @@ def format(format_str, variables):
     return format_str.format(**variables)
 
 def trim_cr(input_str):
-    return input_str.replace('\r\n', '\n').replace(' \r', '').replace('\r','') 
-
-def remote_scp(hostname, username, password, password_prompt, progress_prompt, source, target_dir, direction, timeout):
-    if direction.lower() == 'get':
-        format_str = 'scp -r {0} {1}:{2} {3}'
-    elif direction.lower() == 'send':
-        if '*' in source:
-            format_str = "bash -c 'scp -r {0} {2} {1}:{3}'"
-        else:
-            format_str = 'scp -r {0} {2} {1}:{3}'
+    if isinstance(input_str, str):
+        return input_str.replace('\r\n', '\n').replace(' \r', '').replace('\r','') 
     else:
-        colored_print("Direction '{0}' not supported. Exiting...", tcolors.FAIL)
-        sys.exit(1)
-    username_at_host = '{0}@{1}'.format(username, hostname)
-    command = format_str.format(default_options, username_at_host, source, target_dir)
+        return ''
+
+def remote_scp(var, timeout):
+    var['options'] = default_options
+    var['source'] = os.path.join(var['source_dir'], var['source_file'])
+    command = format(scp_format[var['direction'].lower()], var)
 
     if not default_live_run:
         double_colored_print('Command for live-run:\n', command, tcolors.BOLD, tcolors.WARNING)
         return
-
     double_colored_print('Transferring... ', command, tcolors.BOLD, tcolors.WARNING)
     try:
         connection = pexpect.spawn(command, timeout=timeout)
-        connection.expect(password_prompt)
-        connection.sendline(password)
+        connection.expect(var['password_prompt'])
+        connection.sendline(var['password'])
         while True:
-            ret = connection.expect([progress_prompt, pexpect.EOF, pexpect.TIMEOUT], timeout=timeout)
+            ret = connection.expect([var['progress_prompt'], pexpect.EOF, pexpect.TIMEOUT], timeout=timeout)
             if ret == 0:
                 colored_print_without_newline('\r{0}{1}'.format(connection.before, connection.after), tcolors.LCYAN)
                 continue
             elif ret == 1:
                 colored_print(connection.before, tcolors.LCYAN)
-                double_colored_print('Transfer {0}: '.format(source), 'Done\n', tcolors.BOLD, tcolors.LGREEN)
+                double_colored_print('Transfer {0}: '.format(var['source']), 'Done\n', tcolors.BOLD, tcolors.LGREEN)
                 return True
             elif ret == 2:
                 colored_print('Timed out. Potentially very big file', tcolors.FAIL)
@@ -253,41 +268,48 @@ def remote_scp(hostname, username, password, password_prompt, progress_prompt, s
         colored_print('Unable to scp: {0}'.format(str(e)), tcolors.FAIL)
         return False
 
-def expect_spawn(command, shell_prompt, timeout, password_prompt = None, password = None):
+def expect_spawn(var, timeout):
+    var['options'] = default_options
+    command = format(ssh_format, var)
     double_colored_print('Connecting... ', command, tcolors.BOLD, tcolors.WARNING)
     try:
         connection = pexpect.spawn(command, timeout=timeout)
-        if password_prompt:
-            connection.expect(password_prompt)
-            connection.sendline(password)
-        connection.expect(shell_prompt)
+        ret = connection.expect([var['password_prompt'], var['shell_prompt']])
+        if ret == 0:
+            connection.sendline(var['password'])
+            connection.expect(var['shell_prompt'])
         colored_print('Connection established...\n', tcolors.WHITE)
         return connection
     except Exception as e:
-        msg = "Timed out waiting for the prompt: '{0}'\n".format(shell_prompt)
+        msg = "Timed out waiting for the prompt: '{0}'\n".format(var['shell_prompt'])
         double_colored_print('\nUnable to ssh : ', msg, tcolors.BOLD, tcolors.FAIL)
-        double_colored_print('Exception : ', str(e), tcolors.BOLD, tcolors.FAIL)
+        double_colored_print('Exception : ', str(e) + '\n', tcolors.BOLD, tcolors.FAIL)
         return None
 
-def run_ssh_command(connection, command, shell_prompt, password_prompt = None, password = None):
+def run_ssh_command(connection, command, var):
     if not default_live_run:
         double_colored_print('Command for live-run: ', command, tcolors.BOLD, tcolors.WARNING)
-        return
-
+        return True
+    if not connection:
+        double_colored_print('No connection. Unable to run the command: ', command, tcolors.FAIL, tcolors.WARNING)
+        return True
     double_colored_print('Running command: ', command, tcolors.BOLD, tcolors.WARNING)
     connection.sendline(command)
-    if password_prompt:
-        ret = connection.expect([password_prompt, shell_prompt, pexpect.EOF])
-        if ret == 0: # matched password_prompt
-            connection.sendline(password)
-            connection.expect([shell_prompt, pexpect.EOF])
+
+    if 'sudo' in command:  #Doesn't harm to pass sudo password; as its only used if prompted
+        ret = connection.expect([var['sudo_password_prompt'], pexpect.EOF, var['shell_prompt']])
+        if ret == 0: # matched sudo_password_prompt
+            connection.sendline(var['password'])
+            ret = connection.expect([var['shell_prompt'], pexpect.EOF])
     else:
-        if shell_prompt:
-            connection.expect([shell_prompt, pexpect.EOF])
-    before = trim_cr(connection.before)
-    after = trim_cr(connection.after)
-    #colored_print('{0}{1}'.format(before, after), tcolors.LCYAN)
-    print '{0}{1}'.format(before, after)
+        ret = connection.expect([var['shell_prompt'], pexpect.EOF])
+    response = trim_cr(connection.before) + trim_cr(connection.after)
+    if response.startswith(command):
+        response = response[len(command):].lstrip()
+    colored_print(response, tcolors.NORMAL)
+    if ret == 1: # pexpect.EOF
+        return False
+    return True
 
 def clean_and_split_params(step):
     action_params = set()
@@ -317,7 +339,7 @@ def clean_and_split_params(step):
     combined_params = set()
     combined_params.update(action_params)
     combined_params.update(commands_params)
-    return action_params, commands_params, combined_params
+    return list(action_params), list(commands_params), list(combined_params)
 
 
 def get_distinct_subset(params, variables):
@@ -343,6 +365,11 @@ def get_filtered_variables(filter_dict, variables):
     return filtered_variables
 
 def validate_action_parameters(step, mandatory_params, variable_names):
+    step_keys = list(step.keys())
+    mandatory_keys = mandatory_params + ['action', 'commands']
+    for key in step_keys:
+        if key not in mandatory_keys:
+            del step[key]
     for item in mandatory_params:
         if item not in step:
             if item in variable_names:
@@ -366,16 +393,16 @@ def validate_all_variables(params, variable_names):
 def execute_action(action, step, variable_names, variable_values):
     if not validate_action_parameters(step, action_mandatory_params[action], variable_names):
         return
-
     action_params, commands_params, combined_params = clean_and_split_params(step)
     if not validate_all_variables(combined_params, variable_names):
         return
+    dist_combined_variables = get_distinct_subset(combined_params, variable_values)
 
     if step['action'] == 'local':
-        dist_commands_variables = get_distinct_subset(commands_params, variable_values)
-        for variable in dist_commands_variables:
+        for variable in dist_combined_variables:
+            shell = format(step['shell'], variable)
             for command in step['commands']:
-                command = format(command, variable)
+                command = format('{0} -c "{1}"'.format(shell, command), variable)
 
                 if not default_live_run:
                     double_colored_print('Command for live-run: ', command, tcolors.BOLD, tcolors.WARNING)
@@ -383,64 +410,87 @@ def execute_action(action, step, variable_names, variable_values):
 
                 double_colored_print('Running command: ', command, tcolors.BOLD, tcolors.WARNING)
                 (command_output, exitstatus) = pexpect.run(command, withexitstatus=1)
-                colored_print('{0}'.format(command_output), tcolors.LCYAN)
+                colored_print('{0}'.format(command_output), tcolors.NORMAL)
                 if exitstatus == 0:
                     colored_print('Completed with exit status: {0}'.format(exitstatus), tcolors.BOLD)
                 else:
                     colored_print('Completed with exit status: {0}'.format(exitstatus), tcolors.FAIL)
     elif step['action'] == 'scp':
-        dist_combined_variables = get_distinct_subset(combined_params, variable_values)
         for variable in dist_combined_variables:
             direction = format(step['direction'], variable)
-            if not (direction == 'get' or direction == 'send'):
-                colored_print('Skipping this action...\nReason: Unsupported direction for scp: {0}'.format(direction), tcolors.FAIL)
-                colored_print("Should be 'get' or 'send'", tcolors.FAIL)
+            var = {}
+            for p in action_mandatory_params[step['action']]:
+                var[p] = format(step[p], variable)
+            if var['direction'].lower() not in scp_format.keys():
+                colored_print('Skipping this action...\nReason: Unsupported direction for scp: {0}'.format(var['direction']), tcolors.FAIL)
+                colored_print("Should be one of {0}".format(scp_format.keys()), tcolors.FAIL)
                 return
-            hostname = format(step['hostname'], variable)
-            username = format(step['username'], variable)
-            password = format(step['password'], variable)
-            timeout = get_timeout_secs(format(step['timeout_secs'], variable))
-            password_prompt = format(step['password_prompt'], variable)
-            progress_prompt = format(step['progress_prompt'], variable)
-            source_dir = format(step['source_dir'], variable)
-            target_dir = format(step['target_dir'], variable)
-            if not isinstance(step['source_files'], list):
-                step['source_files'] = [ step['source_files'] ]
-            for source_file in step['source_files']:
-                source_file = format(source_file, variable)
-                source = os.path.join(source_dir, source_file)
-                remote_scp(hostname, username, password, password_prompt, progress_prompt, source, target_dir, direction, timeout)
-    elif step['action'] == 'ssh':  #TODO_LATER: Implement local bash connection
+            remote_scp(var, get_timeout_secs(var['timeout_secs']))
+    elif step['action'] == 'ssh' or step['action'] == 'ssh-int':
         dist_action_variables = get_distinct_subset(action_params, variable_values)
-        dist_combined_variables = get_distinct_subset(combined_params, variable_values)
-        for act_variable in dist_action_variables:
-            hostname = format(step['hostname'], act_variable)
-            username = format(step['username'], act_variable)
-            password = format(step['password'], act_variable)
-            step['timeout_secs'] = format(step['timeout_secs'], act_variable)
-            timeout = get_timeout_secs(format(step['timeout_secs'], act_variable))
-            password_prompt = format(step['password_prompt'], act_variable)
-            sudo_password_prompt = format(step['sudo_password_prompt'], act_variable)
-            shell_prompt = format(step['shell_prompt'], act_variable)
-            command = 'ssh {0} {1}@{2}'.format(default_options, username, hostname)
-            connection = expect_spawn(command, shell_prompt, timeout, password_prompt, password)
-            if not connection:
-                continue
-            dist_commands_variables = get_filtered_variables(act_variable, dist_combined_variables)
-            for cmd_variable in dist_commands_variables:
-                for command in step['commands']:
-                    combined_variables = {}
-                    combined_variables.update(act_variable)
-                    combined_variables.update(cmd_variable)
-                    command = format(command, combined_variables)
-                    if 'sudo' in command: # Doesn't harm to pass sudo password; as its only used if prompted
-                        run_ssh_command(connection, command, shell_prompt, sudo_password_prompt, password)
-                    else:
-                        run_ssh_command(connection, command, shell_prompt)
-            run_ssh_command(connection, 'exit', '.*')
-            connection.close()
-    else:
-        colored_print('Skipping this action...\nReason: Unsupported action: {0}'.format(step['action']), tcolors.FAIL)
+        for index, act_variable in enumerate(dist_action_variables):
+            var = {}
+            for p in action_mandatory_params[step['action']]:
+                var[p] = format(step[p], act_variable)
+
+            connection = expect_spawn(var, get_timeout_secs(var['timeout_secs']))
+            if connection:
+                if step['action'] == 'ssh':
+                    # Below filtering is needed to filter in only variables matching the loop action variable
+                    dist_commands_variables = get_filtered_variables(act_variable, dist_combined_variables)
+                    for cmd_variable in dist_commands_variables:
+                        for command in step['commands']:
+                            command = format(command, cmd_variable)
+                            ret = run_ssh_command(connection, command, var)
+                            if not ret:
+                                connection.close()
+                                connection = None
+                        colored_print('', tcolors.NORMAL)
+                else: # step['action'] == 'ssh-int'
+                    break_after_output = False
+                    commands = []
+                    command = ''
+                    while True:
+                        response = trim_cr(connection.before) + trim_cr(connection.after)
+                        if response.startswith(command):
+                            response = response[len(command):].lstrip()
+                        colored_print_without_newline(response, tcolors.NORMAL)
+                        if break_after_output:
+                            colored_print('\nExiting interative ssh ...\n', tcolors.BOLD)
+                            break
+
+                        prompt = "(Type 'exit' to exit interactive ssh) > "
+                        colored_print_without_newline(prompt, tcolors.NORMAL)
+                        command = raw_input()
+                        if '\x1b' in command:
+                            colored_print('Ignoring command ...', tcolors.BOLD)
+                            command = ''
+                        try:
+                            command = command.strip()
+                            commands.append(command)
+                            connection.sendline(command)
+                            if 'sudo' in command:  #Doesn't harm to pass sudo password; as its only used if prompted
+                                ret = connection.expect([var['sudo_password_prompt'], pexpect.EOF, var['shell_prompt']])
+                                if ret == 0: # matched sudo_password_prompt
+                                    connection.sendline(var['password'])
+                                    ret = connection.expect([var['shell_prompt'], pexpect.EOF])
+                            else:
+                                ret = connection.expect([var['shell_prompt'], pexpect.EOF])
+                            if ret == 1: # pexpect.EOF
+                                break_after_output = True
+                        except Exception as e:
+                            print 'Something happened. Exception : {0}'.format(str(e))
+                            return
+                    if index == 0 and len(dist_action_variables) > 1 and commands:
+                        res = raw_input('Run all these commands on rest of the hosts? [y]/n : ')
+                        colored_print('', tcolors.NORMAL)
+                        if not res or not (res.upper() == 'N' or res.upper() == 'NO'):
+                            step['action'] = 'ssh'
+                            step['commands'] = commands
+                            config_out = { "main" : [ "interative_ssh" ], "interative_ssh" : step }
+                            dump_json(config_out, 'interactive.json')
+                if connection:
+                    connection.close()
 
 def execute(config, live_run):
     if not config or 'main' not in config:
@@ -458,7 +508,7 @@ def execute(config, live_run):
             colored_print("\n{0}. Skipping action... '{1}' : Blank action name not supported".format(index+1, step_name), tcolors.HEADER)
             continue
         if step_name.startswith(('#', '-')):
-            colored_print("\n{0}. Skipping action... '{1}' : Commented by prefixing with '-' or '#'".format(index+1, step_name), tcolors.HEADER)
+            #colored_print("\n{0}. Skipping action... '{1}' : Commented by prefixing with '-' or '#'".format(index+1, step_name), tcolors.HEADER)
             continue
         if step_name not in config:
             colored_print("\n{0}. Skipping action... '{1}' : Not defined in the config file".format(index+1, step_name), tcolors.HEADER)

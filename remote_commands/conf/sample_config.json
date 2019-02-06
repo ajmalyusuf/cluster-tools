@@ -1,0 +1,71 @@
+{
+    "variables": {
+        "credentials.hostname": [ "dfs1-dev.openstacklocal", "dfs2-dev.openstacklocal", "kcspark-ssh.azurehdinsight.net" ],
+        "credentials.username": [ "ajmal", "heba", "sshuser" ],
+        "credentials.password": [ "ajmal", "heba12", "Password1.." ]
+    },
+
+    "constants" : {
+        "timeout_secs" : 30,
+        "local_base_dir" : "~/LOCAL_DIR",
+        "remote_base_dir" : "~/REMOTE_DIR",
+        "src_file" : [ "*", "sub_dir_1" ],
+
+        "--sub_dir" : ["sub_dir_1", "sub_dir_2"],
+        "--filename" : ["file_1", "file_2", "file_3"],
+
+        "2nums" : ["1", "2"],
+        "3nums" : ["1", "2", "3"],
+        "sub_dir" : "sub_dir_{2nums}",
+        "filename" : "file_{3nums}.txt"
+    },
+
+    "main" : [
+        "clear_local_dir",
+        "create_local_dirs_and_files",
+        "cleate_remote_dir",
+        "upload_files",
+        "list_remote_files"
+    ],
+
+    "clear_local_dir" : {
+        "action" : "local",
+        "commands" : [
+            "rm -fr {local_base_dir}"
+        ]
+    },
+
+    "create_local_dirs_and_files" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {local_base_dir}/{sub_dir}",
+            "touch {local_base_dir}/{sub_dir}/{filename}"
+        ]
+    },
+
+    "cleate_remote_dir" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {remote_base_dir}",
+            "hostname -f && date; echo 'test &&'",
+            "mkdir -p {remote_base_dir}"
+        ]
+    },
+
+    "upload_files" : {
+        "action" : "scp",
+        "direction" : "send",
+        "source_dir" : "{local_base_dir}",
+        "source_file" : "{src_file}",
+        "target_dir" : "{remote_base_dir}"
+    },
+
+    "list_remote_files" : {
+        "action" : "ssh",
+        "commands" : [
+            "sudo ls -al /root",
+            "ls -al ~",
+            "ls -al -R {remote_base_dir}"
+        ]
+    }
+}

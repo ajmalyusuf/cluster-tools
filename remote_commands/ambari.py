@@ -20,8 +20,6 @@ import datetime
 import getpass
 import urllib2
 import base64
-import pprint
-import argparse
 
 import remote
 
@@ -29,7 +27,6 @@ version = '1.0'
 
 # Change the default values for the below parameters
 # ========================================================================================
-default_ssh_user = 'sshuser'
 default_ambari_user = 'admin'
 default_ambari_password = 'admin'
 default_ambari_port = '8080'
@@ -67,13 +64,6 @@ default_log_dir_properties = [
     "zeppelin_log_dir"
 ]
 # ========================================================================================
-
-def print_json(output):
-    print json.dumps(output, indent=4)
-
-# If you need to change the str formatting later
-def format(format_str, variables):
-    return format_str.format(**variables)
 
 def create_global_api_accessor(login, password):
     global perform_request
@@ -197,7 +187,7 @@ def get_selection(items, name, include_all = False):
         remote.colored_print('Nothing selected. Exiting...', remote.tcolors.BOLD)
         sys.exit(1)
 
-def execute(username, password, clustername, base_url, selected_service, selected_component, conf_file, ssh_user, ssh_pass, run_id):
+def execute(username, password, clustername, base_url, selected_service, selected_component, ssh_user, ssh_pass):
     if not clustername:
         clustername = get_default_cluster_name(base_url)
     cluster_url = '{0}/clusters/{1}'.format(base_url, clustername)
@@ -210,18 +200,6 @@ def execute(username, password, clustername, base_url, selected_service, selecte
     service_log_dirs = get_service_log_dir(cluster_url, selected_service)
     hostnames_components = get_service_components_hostname(cluster_url, selected_service, selected_component)
 
-    print '\nBelow are the hosts/nodes for {0}:'.format(selected_service)
-    for index, host in enumerate(sorted(hostnames_components)):
-        print '{0}. {1}'.format(index+1, host)
-        for component in hostnames_components[host]:
-            print '    - {0}'.format(component)
-    print ''
-
-    if not conf_file:
-        selection = raw_input('Do you want to get the config variables to run the script manually? [n]: ')
-        if not (selection.upper() == 'Y' or selection.upper() == 'YES'):
-            sys.exit(0)
-
     variables = {}
     variables['group1.service'] = []
     variables['group1.log_dir'] = []
@@ -232,90 +210,31 @@ def execute(username, password, clustername, base_url, selected_service, selecte
     variables['credential.hostname'] = []
     variables['credential.username'] = []
     variables['credential.password'] = []
-        
-    prompt_cleared = False
-    for host in sorted(hostnames_components):
+    print '\nBelow are the hosts/nodes for {0}:'.format(selected_service)
+    for index, host in enumerate(sorted(hostnames_components)):
+        print '{0}. {1}'.format(index+1, host)
+        for component in hostnames_components[host]:
+            print '    - {0}'.format(component)
         variables['credential.hostname'].append(host)
-        if ssh_user:
-            variables['credential.username'].append(ssh_user)
-        else:
-            username = raw_input("\nEnter SSH username for '{0}' [{1}]: ".format(host, default_ssh_user))
-            if not username:
-                username = default_ssh_user
-            variables['credential.username'].append(username)
-        if ssh_pass:
-            variables['credential.password'].append(ssh_pass)
-        else:
-            if ssh_user:
-                username = ssh_user
-            password = getpass.getpass('Password for {0} [Exit]: '.format(username))
-            if not password:
-                print 'Exiting...'
-                sys.exit(0)
-            variables['credential.password'].append(password)
-        if not prompt_cleared and (not ssh_user or not ssh_pass) and len(hostnames_components) > 1:
-            prompt_cleared = True
-            selection = raw_input('Use the same credentials for all the host{s}? [y]: ')
-            if not selection or selection.upper() == 'Y' or selection.upper() == 'YES':
-                ssh_user = username
-                ssh_pass = password
+        variables['credential.username'].append(ssh_user)
+        variables['credential.password'].append(ssh_pass)
+    print ''
+    return variables
 
-    if run_id:
-        variables['run_id'] = run_id
-    if conf_file:
-        config = remote.load_config(conf_file)
-        config['variables'] = variables
-        remote.execute(config)
-    else:
-        output = { 'variables' : variables }
-        print_json(output)
-
-def main(config_filename = None):
-    description = 'Version %s. \nScript to pull service configs and logs from cluster' % version
-    live_run_desc = 'The program is capable of running any UNIX command on any host with credentials. ' \
-                    'To AVOID any unwanted consequences of running certain non-recoverable commands like "rm -fr", ' \
-                    'the program will EXECUTE the commands only if this flag is enabled. If False, the program ' \
-                    'will ONLY output all the resolved commands.'
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-a', '--ambari_host', help='IP/Hostname of the Ambari Server', required=True)
-    parser.add_argument('-r', '--port', help='Port number for Ambari Server. Default: 8080', required=False)
-    parser.add_argument('-u', '--username', help='Username for Ambari UI. Default: admin.', required=False)
-    parser.add_argument('-p', '--password', help='Password for Ambari UI. Default: admin', required=False)
-    parser.add_argument('-n', '--clustername', help='Name of the cluster. Default: First available cluster name in Ambari', required=False)
-    parser.add_argument('-s', '--service', help='Service Name', required=False)
-    parser.add_argument('-c', '--component', help='Component Name', required=False)
-    parser.add_argument('-f', '--conf-file', dest='conf_file', help='Name of the config file in JSON format', required=False)
-    parser.add_argument('--ssh-user', dest='ssh_user', help='SSH username to connect to hosts', required=False)
-    parser.add_argument('--ssh-pass', dest='ssh_pass', help='SSH password to connect to hosts', required=False)
-    parser.add_argument('--run-id', dest='run_id', help='Unique RUN ID. Default: Will be automatically generated.', required=False)
-    parser.add_argument('--live-run', dest='live_run', help=live_run_desc, action='store_true')
-    args = parser.parse_args()
-
-    ambari_server = args.ambari_host
-    conf_file = args.conf_file
-    port = args.port if args.port else default_ambari_port
-    username = args.username if args.username else default_ambari_user
-    clustername = args.clustername if args.clustername else None
-    service = args.service.upper() if args.service else None
-    component = args.component.upper() if args.component else None
-    ssh_user = args.ssh_user if args.ssh_user else None
-    ssh_pass = args.ssh_pass if args.ssh_pass else None
-    run_id = args.run_id if args.run_id else None
+def get_ambari_hosts(ambari_server, port, ambari_user, ambari_pass, clustername, service, component, ssh_user, ssh_pass):
+    port = port if port else default_ambari_port
+    ambari_user = ambari_user if ambari_user else default_ambari_user
     protocol = 'http'
 
-    if args.password:
-        password = args.password
-    else:
-        if username == default_ambari_user:
-            password = getpass.getpass("Ambari password for '{0}' [{1}]: ".format(username, default_ambari_password))
-            if not password:
-                password = default_ambari_password
+    if not ambari_pass:
+        if ambari_user == default_ambari_user:
+            ambari_pass = getpass.getpass("Ambari password for '{0}' [{1}]: ".format(ambari_user, default_ambari_password))
+            if not ambari_pass:
+                ambari_pass = default_ambari_password
         else:
-            password = getpass.getpass("Ambari password for '{0}': ".format(username))
-    create_global_api_accessor(username, password)
+            ambari_pass = getpass.getpass("Ambari password for '{0}': ".format(ambari_user))
+    create_global_api_accessor(ambari_user, ambari_pass)
     base_url = '{0}://{1}:{2}/api/v1'.format(protocol, ambari_server, port)
                             
-    execute(username, password, clustername, base_url, service, component, conf_file, ssh_user, ssh_pass, run_id)
+    return execute(ambari_user, ambari_pass, clustername, base_url, service, component, ssh_user, ssh_pass)
 
-if __name__ == "__main__":
-    main()
