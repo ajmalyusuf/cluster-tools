@@ -8,7 +8,6 @@
     "constants" : {
         "local_base_dir" : "~/LOCAL_DIR",
         "remote_base_dir" : "/home/{username}/REMOTE_DIR",
-        "src_files" : [ "*", "sub_dir_1" ],
 
         "sub_dir" : ["sub_dir_1", "sub_dir_2"],
         "filename" : ["file_1", "file_2", "file_3"],
@@ -54,7 +53,7 @@
         "action" : "scp",
         "direction" : "send",
         "source_dir" : "{local_base_dir}",
-        "source_file" : "{src_files}",
+        "source_file" : "*",
         "target_dir" : "{remote_base_dir}"
     },
 

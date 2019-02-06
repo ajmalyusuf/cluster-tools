@@ -37,7 +37,7 @@
         "action" : "scp",
         "direction" : "send",
         "source_dir" : "{local_hotfix_jar_dir}",
-        "source_files" : [ "*" ],
+        "source_file" : "*",
         "target_dir" : "{hotfix_install_data_dir}/{hotfix_jars}"
     },
 

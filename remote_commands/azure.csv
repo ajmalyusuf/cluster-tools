@@ -1,0 +1,5 @@
+# hostname/ip, ssh_username, ssh_password (after second comma unitl \n; including spaces)
+kcspark-ssh.azurehdinsight.net, sshuser,Password1..
+#msft1-dev.openstacklocal, sshuser,ssh_pass
+
+

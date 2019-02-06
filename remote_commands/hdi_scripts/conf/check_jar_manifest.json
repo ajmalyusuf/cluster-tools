@@ -1,0 +1,29 @@
+{
+    "variables" : {
+        "credentials.hostname" : [ "sparkdansha-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
+        "credentials.username" : [ "sshuser", "ajmal" ],
+        "credentials.password" : [ "AjmalRocks2019!", "ajmal" ]
+    },
+
+    "constants" : {
+        "timeout_secs" : 30,
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+
+        "jar_type" : [ "exec", "metastore", "jdbc", "service", "beeline", "common" ],
+        "jar_file" : "/usr/hdp/current/hive-client/lib/hive-{jar_type}.jar"
+    },
+
+    "main" : [
+        "check_jar_meta_info"
+    ],
+
+    "check_jar_meta_info" : {
+        "action" : "ssh",
+        "commands" : [
+                "md5sum {jar_file}",
+                "unzip -q -c {jar_file} META-INF/MANIFEST.MF"
+        ]
+    }
+}

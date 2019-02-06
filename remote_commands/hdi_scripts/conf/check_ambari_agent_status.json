@@ -1,0 +1,23 @@
+{
+    "constants" : {
+        "timeout_secs" : 10,
+        "shell_prompt" : "\\$ $",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+
+        "agent_command" : "sudo ambari-agent status"
+    },
+
+    "main" : [
+        "check_versions"
+    ],
+
+    "check_versions" : {
+        "action" : "ssh",
+        "commands" : [
+            "hostname -f",
+            "{agent_command}"
+        ]
+    }
+}
+

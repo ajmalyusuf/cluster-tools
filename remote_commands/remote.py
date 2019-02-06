@@ -157,8 +157,8 @@ def get_timeout_secs(timeout_value):
     try:
         return int(timeout_value)
     except:
-        colored_print("WARNING: 'timeout_secs' should be a number: \
-                       Using default value of {0} secs...".format(default_variables['timeout_secs']), tcolors.WARNING)
+        colored_print("WARNING: 'timeout_secs' should be a number: " \
+                      "Using default value of {0} secs...".format(default_variables['timeout_secs']), tcolors.WARNING)
         return default_variables['timeout_secs']
 
 def populate_defaults(variables):
@@ -420,6 +420,9 @@ def execute_action(action, step, variable_names, variable_values):
             direction = format(step['direction'], variable)
             var = {}
             for p in action_mandatory_params[step['action']]:
+                if isinstance(step[p], list):
+                    double_colored_print('Skipping this action...\nReason: Action parameter should be a string: ', p, tcolors.FAIL, tcolors.WARNING)
+                    return
                 var[p] = format(step[p], variable)
             if var['direction'].lower() not in scp_format.keys():
                 colored_print('Skipping this action...\nReason: Unsupported direction for scp: {0}'.format(var['direction']), tcolors.FAIL)
@@ -431,6 +434,9 @@ def execute_action(action, step, variable_names, variable_values):
         for index, act_variable in enumerate(dist_action_variables):
             var = {}
             for p in action_mandatory_params[step['action']]:
+                if isinstance(step[p], list):
+                    double_colored_print('Skipping this action...\nReason: Action parameter should be a string: ', p, tcolors.FAIL, tcolors.WARNING)
+                    return
                 var[p] = format(step[p], act_variable)
 
             connection = expect_spawn(var, get_timeout_secs(var['timeout_secs']))

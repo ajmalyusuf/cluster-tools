@@ -1,0 +1,73 @@
+{
+    "constants" : {
+        "shell_prompt" : "\\$ $",
+        "progress_prompt" : "ETA",
+        "password_prompt" : "password: ",
+        "sudo_password_prompt" : "password for {username}:",
+
+        "local_target_dir": "~/{run_id}",
+        "remote_home" : "~",
+        "remote_staging_dir" : "{remote_home}/{run_id}_{hostname}",
+        "tar_file_name" : "{run_id}_{hostname}.tgz",
+        "file_mask": [ "*.log", "*.err", "*.out", "*gc.log*" ],
+
+        "group2.service" : [ "HDFS", "YARN" ],
+        "group2.log_dir" : [ "/var/log/hadoop/hdfs", "/var/log/hadoop-yarn/yarn" ]
+    },
+ 
+    "main" : [
+        "create_local_dir",
+        "create_remote_dir_set_source_permission",
+        "copy_all_files",
+        "build_tgz_file",
+        "get_tgz_file",
+        "delete_tgz_file"
+    ],
+
+    "create_local_dir" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {local_target_dir}",
+            "ls -al {local_target_dir}"
+        ]
+    },
+
+    "create_remote_dir_set_source_permission" : {
+        "action" : "ssh",
+        "commands" : [
+            "mkdir -p {remote_staging_dir}/{service}",
+            "sudo chmod +r {log_dir}/*"
+        ]
+    },
+
+    "copy_all_files" : {
+        "action" : "ssh",
+        "commands" : [
+            "cp {log_dir}/{file_mask} {remote_staging_dir}/{service}/"
+        ]
+    },
+
+    "build_tgz_file" : {
+        "action" : "ssh",
+        "commands" : [
+            "tar -zcvf {run_id}_{hostname}.tgz ./{run_id}_{hostname}",
+            "rm -fr ./{run_id}_{hostname}"
+        ]
+    },
+
+    "get_tgz_file" : {
+        "action" : "scp",
+        "direction" : "get",
+        "source_dir" : "{remote_home}",
+        "source_file" : "{tar_file_name}",
+        "target_dir" : "{local_target_dir}"
+    },
+
+    "delete_tgz_file" : {
+        "action" : "ssh",
+        "commands" : [
+            "rm -fr {tar_file_name}"
+        ]
+    }
+}
+
