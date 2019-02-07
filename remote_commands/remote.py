@@ -32,7 +32,7 @@ version = '1.1'
 default_live_run = False
 default_variables = {
     'shell' : 'bash',
-    'timeout_secs' : '60',
+    'timeout_secs' : 60,
     'shell_prompt' : '\\$ $',
     'password_prompt' : 'password: ',
     'sudo_password_prompt' : 'password for {username}:',
@@ -157,8 +157,8 @@ def get_timeout_secs(timeout_value):
     try:
         return int(timeout_value)
     except:
-        colored_print("WARNING: 'timeout_secs' should be a number: " \
-                      "Using default value of {0} secs...".format(default_variables['timeout_secs']), tcolors.WARNING)
+        double_colored_print("WARNING: 'timeout_secs' should be a number. Using default ", \
+                             '{0} secs...'.format(default_variables['timeout_secs']), tcolors.FAIL, tcolors.LGREEN)
         return default_variables['timeout_secs']
 
 def populate_defaults(variables):
@@ -280,7 +280,7 @@ def expect_spawn(var, timeout):
             connection.expect(var['shell_prompt'])
         colored_print('Connection established...\n', tcolors.WHITE)
         return connection
-    except Exception as e:
+    except KeyError as e:
         msg = "Timed out waiting for the prompt: '{0}'\n".format(var['shell_prompt'])
         double_colored_print('\nUnable to ssh : ', msg, tcolors.BOLD, tcolors.FAIL)
         double_colored_print('Exception : ', str(e) + '\n', tcolors.BOLD, tcolors.FAIL)
