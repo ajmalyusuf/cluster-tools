@@ -8,10 +8,10 @@
     "sudo_password_prompt" : "password for {username}: ",
     "progress_prompt" : "ETA",
 
-    "username" : "ajmal",
-    "password" : "ajmal12",
+    "username" : "<default ssh username>",
+    "password" : "<default ssh password>",
 
-    "ambari_server" : "dfs1-dev.openstacklocal",
+    "ambari_server" : "headnodehost",
     "ambari_port" : "8080",
     "ambari_username" : "admin",
     "ambari_password" : "admin"
