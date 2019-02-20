@@ -1,0 +1,19 @@
+{
+    "default_live_run" : "True",
+
+    "shell" : "bash",
+    "timeout_secs" : "60",
+    "shell_prompt" : "[#\\$] $",
+    "--shell_prompt" : "\\[?(.+)@([^\\]\\:\\$\\#\\~\\s]+)[\\]\\:\\$\\#\\~\\s]+\\s+",
+    "password_prompt" : "password: ",
+    "sudo_password_prompt" : "password for {username}: ",
+    "progress_prompt" : "ETA",
+
+    "username" : "ajmal",
+    "password" : "ajmal12",
+
+    "ambari_server" : "dfs1-dev.openstacklocal",
+    "ambari_port" : "8080",
+    "ambari_username" : "admin",
+    "ambari_password" : "admin"
+}

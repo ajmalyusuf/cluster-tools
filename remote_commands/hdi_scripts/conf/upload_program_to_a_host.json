@@ -6,7 +6,7 @@
     },
 
     "constants" : {
-        "remote_program_dir" : "/home/{username}/remote_program",
+        "remote_program_dir" : "~/remote_program",
         "src_dir" : "./",
         "src_files" : "*"
     },

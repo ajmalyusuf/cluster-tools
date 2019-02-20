@@ -32,7 +32,7 @@ def get_cluster_hosts(sshuser, sshpass, include_prefix = None, exclude_prefix = 
     with open(etc_host_file) as hf:
         lines = hf.readlines()
 
-    credentials = { 'credentials.hostname' : [], 'credentials.username' : [], 'credentials.password' : [] }
+    hostnames = []
     for line in lines:
         line = re.sub('\s+', ' ', line).strip()
         match = regex.search(line)
@@ -42,15 +42,18 @@ def get_cluster_hosts(sshuser, sshpass, include_prefix = None, exclude_prefix = 
                 hostname = names[1]
                 if inc_tup:
                     if hostname.startswith(inc_tup):
-                        credentials['credentials.hostname'].append(hostname)
-                        credentials['credentials.username'].append(sshuser)
-                        credentials['credentials.password'].append(sshpass)
+                        hostnames.append(hostname)
                     continue
                 if exc_tup:
                     if hostname.startswith(exc_tup):
                         continue
-                credentials['credentials.hostname'].append(hostname)
-                credentials['credentials.username'].append(sshuser)
-                credentials['credentials.password'].append(sshpass)
+                hostnames.append(hostname)
+
+    credentials = {}
+    credentials['hostname'] = hostnames
+    if sshuser:
+        credentials['username'] = sshuser
+    if sshpass:
+        credentials['password'] = sshpass
     return credentials
 

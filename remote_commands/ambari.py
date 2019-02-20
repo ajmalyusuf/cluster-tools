@@ -207,18 +207,18 @@ def execute(username, password, clustername, base_url, selected_service, selecte
         variables['group1.service'].append(selected_service)
         variables['group1.log_dir'].append(log_dir)
 
-    variables['credential.hostname'] = []
-    variables['credential.username'] = []
-    variables['credential.password'] = []
+    variables['hostname'] = []
     print '\nBelow are the hosts/nodes for {0}:'.format(selected_service)
     for index, host in enumerate(sorted(hostnames_components)):
         print '{0}. {1}'.format(index+1, host)
         for component in hostnames_components[host]:
             print '    - {0}'.format(component)
-        variables['credential.hostname'].append(host)
-        variables['credential.username'].append(ssh_user)
-        variables['credential.password'].append(ssh_pass)
+        variables['hostname'].append(host)
     print ''
+    if ssh_user:
+        variables['username'] = ssh_user
+    if ssh_pass:
+        variables['password'] = ssh_pass
     return variables
 
 def get_ambari_hosts(ambari_server, port, ambari_user, ambari_pass, clustername, service, component, ssh_user, ssh_pass):
