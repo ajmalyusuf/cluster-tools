@@ -1,10 +1,9 @@
 {
-    "default_live_run" : "True",
+    "default_live_run" : false,
 
     "shell" : "bash",
     "timeout_secs" : "60",
     "shell_prompt" : "[#\\$] $",
-    "--shell_prompt" : "\\[?(.+)@([^\\]\\:\\$\\#\\~\\s]+)[\\]\\:\\$\\#\\~\\s]+\\s+",
     "password_prompt" : "password: ",
     "sudo_password_prompt" : "password for {username}: ",
     "progress_prompt" : "ETA",
