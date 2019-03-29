@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 
 ########################################################################################
-#
-# This is a python script to perform ssh and scp on a remote host
-#
-# This tool can be run from Windows, Mac or Linux machines installed with python 2.x
-# The machine should have access to the remote machines
-#
-# Type 'python remote.py' and press enter for running instructions
-#
 # For any questions or suggestions please contact : Ajmal Yusuf <ayusuf@hortonworks.com>
 ########################################################################################
 
@@ -19,8 +11,8 @@ import json
 import platform
 import logging
 import datetime
-import pprint
 import pexpect
+import getpass
 import argparse
 import itertools
 
@@ -30,9 +22,6 @@ sshuser@hn0-lazhuh:~$
 [root@dfs1-dev ~]#
 new_patt =  '\[?(.+)@([^\]\:\$\#\~\s]+)[\]\:\$\#\~\s]+\s+'
 '''
-
-logger = logging.getLogger(__name__)
-
 # Change the default values for the below parameters
 # ==================================================
 version = '1.1'
@@ -54,6 +43,7 @@ scp_format = {
 ssh_format = 'ssh {options} {username}@{hostname}'
 # ==================================================
 
+space_regex = re.compile('\s')
 var_regex = re.compile('({[ \t]*(\w+)[ \t]*})')
 NO_RECURSIONS = 10
 
@@ -68,12 +58,16 @@ action_mandatory_params = {
 }
 
 params_error_messages = {
-    "{username}" : "'username' not provided. You may pass it as --sshuser parameter for subcommands 'hosts', " \
-                 "'cred' and 'ambari'.\nFor 'conf' subcommand, username should be in the config json file."
-                 "\nYou may also configure 'username' in the default_properties.json file.",
-    "{password}" : "'password' not provided. You may pass it as --sshpass parameter for subcommands 'hosts', " \
-                 "'cred' and 'ambari'.\nFor 'conf' subcommand, password should be in the config json file."
-                 "\nYou may also configure 'password' in the default_properties.json file."
+    "{username}" : "'username' not provided. You may pass it as -u/--username parameter OR " \
+                   "\nconfigure 'username' in the 'default_properties.json' file.",
+    "{password}" : "'password' not provided. You may pass it as -p/--password parameter OR " \
+                   "\nconfigure 'password' in the 'default_properties.json' file."
+}
+
+parameter_groups = {
+    'hostname' : 'remote_credentials',
+    'username' : 'remote_credentials',
+    'password' : 'remote_credentials'
 }
 
 class tcolors:
@@ -84,7 +78,7 @@ class tcolors:
     WHITE = '\033[97m'
     LGREEN = '\033[92m'
     BOLDLGREEN = '\033[1m\033[92m'
-    WARNING = '\033[93m'
+    WARNING = '\033[1m\033[93m'
     FAIL = '\033[1m\033[91m'
     ENDC = '\033[0m'
     NORMAL = '\033[0m'
@@ -95,7 +89,7 @@ class tcolors:
 def print_json(output, heading = None):
     if heading:
         print heading
-        print '=' * len(heading)
+        print '-' * len(heading)
     print json.dumps(output, indent=4)
 
 def dump_json(output, filename):
@@ -126,10 +120,10 @@ def double_colored_print(f_msg, s_msg, f_color, s_color):
 def load_config(config_json_file):
     try:
         with open(config_json_file) as json_data_file:
-            double_colored_print('\nReading config from: ', config_json_file, tcolors.BOLD, tcolors.BOLDLGREEN)
+            double_colored_print('\nReading config from: ', config_json_file + '\n', tcolors.BOLD, tcolors.BOLDLGREEN)
             return json.load(json_data_file)
     except Exception as e:
-        colored_print('\nUnable to load JSON config file: {0}'.format(config_json_file), tcolors.FAIL)
+        colored_print('Unable to load JSON config file: {0}'.format(config_json_file), tcolors.FAIL)
         colored_print('Reason: {0}'.format(str(e)), tcolors.FAIL)
         colored_print('Exiting...', tcolors.WHITE)
 
@@ -177,46 +171,80 @@ def get_timeout_secs(timeout_value):
 
 def populate_defaults(config):
     def present(variable):
-        for key in variables:
+        for key in clean_variables:
             if key == variable or key.endswith('.' + variable):
                 return True
         return False
+    def get_value(key, value):
+        if isinstance(value, (str, unicode)):
+            if value.startswith(':p?') or value.startswith(':pp?'):
+                if(key == 'username' or key.endswith('.username')) and 'username' in default_variables:
+                    value = default_variables['username']
+                elif (key == 'password' or key.endswith('.password')) and 'password' in default_variables:
+                    value = default_variables['password']
 
-    def insert_if_not_present(variables_dict, name = ''):
-        for key in variables_dict:
-            org_key = key
-            if not key.startswith(('#', '-')):
-                if '.' in key:
-                    groupname, key = key.rsplit('.', 1)
-                if not present(key):
-                    variables[org_key] = variables_dict[org_key]
-                else:
-                    double_colored_print('Ignoring duplicate {0}: '.format(name),
-                            '{0} : {1}'.format(org_key, variables_dict[org_key]), tcolors.FAIL, tcolors.BOLD)
+            if value.startswith(':p?'):
+                value = raw_input('Enter the value for {0}{1}{2} [exit]: '.format(tcolors.BOLD, key, tcolors.NORMAL))
+                if not value:
+                    sys.exit(0)
+            elif value.startswith(':pp?'):
+                value = getpass.getpass('Enter the value for {0}{1}{2} [exit]: '.format(tcolors.WARNING, key, tcolors.NORMAL))
+                if not value:
+                    sys.exit(0)
+        return value 
+    def insert_into_variables_if_not_present(key, value):
+        org_key = key
+        value = get_value(key, value)
+        if '.' in key:
+            groupname, key = key.rsplit('.', 1)
+        if not present(key):
+            if isinstance(value, list) and len(value) > 1:
+                key = parameter_groups[key] + '.' + key if key in parameter_groups else org_key
+            clean_variables[key] = value
+        else:
+            double_colored_print('Ignoring duplicate variable: ',
+                    '"{0}" : "{1}"'.format(org_key, value), tcolors.FAIL, tcolors.BOLD)
 
-    variables = {}
-    config_variables = config['variables'] if 'variables' in config else {}
-    insert_if_not_present(config_variables, 'variables')
-    config_constants = config['constants'] if 'constants' in config else {}
-    insert_if_not_present(config_constants, 'constants')
+    clean_variables = {}
+    if 'variables' in config:
+        ordered_prompt_variables = {}
+        non_ordered_prompt_variables = []
+        for key in config['variables']:
+            value = config['variables'][key]
+            if key.startswith(('#', '-')) or not value:
+                continue
+            if space_regex.search(key):
+                double_colored_print('Ignoring invalid variable: ', '"{0}"'.format(key), tcolors.FAIL, tcolors.BOLD)
+                continue
+            if '.' in key:
+                order, new_key = key.split('.',1)
+                if order.isdigit():
+                    ordered_prompt_variables[order] = (new_key, value)
+                    continue
+            non_ordered_prompt_variables.append((key, value))
+        for slno in sorted(ordered_prompt_variables, key=int):
+            (key, value) = ordered_prompt_variables[slno]
+            insert_into_variables_if_not_present(key, value)
+        for key, value in non_ordered_prompt_variables:
+            insert_into_variables_if_not_present(key, value)
 
     for key in default_variables:
         if not present(key):
-            variables[key] = default_variables[key]
+            clean_variables[key] = default_variables[key]
 
-    if 'run_id' in variables:
-        run_id = variables['run_id']
-    else:
-        utc_datetime = datetime.datetime.utcnow()
-        run_id = utc_datetime.strftime('RID_%Y%m%d_%H%M%S_UTC')
-        variables['run_id'] = run_id
-    return run_id, variables
+    if 'run_id' not in clean_variables:
+        clean_variables['run_id'] = generate_run_id()
+    return clean_variables['run_id'], clean_variables
+
+def generate_run_id():
+    utc_datetime = datetime.datetime.utcnow()
+    return utc_datetime.strftime('RID_%Y%m%d_%H%M%S_UTC')
 
 def load_variables(config):
     run_id, variables = populate_defaults(config)
     variable_names, dict_variables = convert_group_list_to_dict(variables)
-    variable_values = cartition_product(dict_variables)
-        
+    variable_values = cartesian_product(dict_variables)
+
     for variable in variable_values:
         for value in variable:
             if isinstance(variable[value], (str, unicode)):
@@ -224,21 +252,22 @@ def load_variables(config):
                 while var_regex.search(variable[value]):
                     if depth == NO_RECURSIONS:
                         double_colored_print('Unable to resolve the parameter: ', variable[value], tcolors.FAIL, tcolors.WARNING)
-                        colored_print('Reason: Potential cyclic dependency.  Exiting...', tcolors.FAIL)
+                        colored_print('Reason: Potential cyclic dependency.  Exiting...\n', tcolors.FAIL)
                         sys.exit(1)
                     try:
                         variable[value] = format(variable[value], variable)
                     except KeyError as ke:
                         parameter_name = '{' + str(ke.args[0]) + '}'
-                        double_colored_print('Unable to resolve the parameter: ', parameter_name, tcolors.FAIL, tcolors.WARNING)
+                        double_colored_print('Unable to resolve the variable: ', value + ' = "' + variable[value] + '"', tcolors.FAIL, tcolors.WARNING)
+                        double_colored_print('Undefined variable: ', parameter_name, tcolors.FAIL, tcolors.WARNING)
                         if parameter_name in params_error_messages:
                             colored_print(params_error_messages[parameter_name], tcolors.NORMAL)
-                        colored_print('Exiting...', tcolors.FAIL)
+                        colored_print('Exiting...\n', tcolors.FAIL)
                         sys.exit(1)
                     depth += 1
     return run_id, variable_names, variable_values
 
-def cartition_product(variables):
+def cartesian_product(variables):
     keylist = []
     valuelist = []
     for i in variables:
@@ -259,10 +288,6 @@ def cartition_product(variables):
                     item[keylist[index]] = element
         var_list.append(item)
     return var_list
-
-def pretty_print(d):
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(d)
 
 # If you need to change the str formatting later
 def format(format_str, variables):
@@ -314,14 +339,14 @@ def expect_spawn(var, timeout):
             connection.expect(var['shell_prompt'])
         colored_print('Connection established', tcolors.LGREEN)
         response = trim_cr(connection.before) + trim_cr(connection.after)
-        if default_live_run:
-            colored_print_without_newline(response, tcolors.NORMAL)
-        return connection
+        #if default_live_run:
+        #    colored_print_without_newline(response, tcolors.NORMAL)
+        return connection, response
     except Exception as e:
         msg = "Timed out waiting for the prompt: '{0}'\n".format(var['shell_prompt'])
         double_colored_print('\nUnable to ssh : ', msg, tcolors.BOLD, tcolors.FAIL)
         double_colored_print('Exception : ', str(e) + '\n', tcolors.BOLD, tcolors.FAIL)
-        return None
+        return None, None
 
 def run_ssh_command(connection, command, var):
     if not default_live_run:
@@ -414,11 +439,14 @@ def validate_action_parameters(step, mandatory_params, variable_names):
             del step[key]
     for item in mandatory_params:
         if item not in step:
+            parameter_name = '{' + item + '}'
             if item in variable_names:
-                step[item] = '{' + item + '}'
+                step[item] = parameter_name
             else:
-                double_colored_print('Skipping this action...\nReason: Missing configuration: ',
+                double_colored_print('Skipping this action...\nReason: Missing parameter: ',
                                                         item, tcolors.FAIL, tcolors.WARNING)
+                if parameter_name in params_error_messages:
+                    colored_print(params_error_messages[parameter_name], tcolors.NORMAL)
                 return False
         elif item == 'timeout_secs':
             step[item] = str(step[item])
@@ -468,31 +496,34 @@ def execute_action(action, step, variable_names, variable_values):
                     colored_print('Exit status: {0}'.format(exitstatus), tcolors.LGREEN)
                 else:
                     colored_print('Exit status: {0}'.format(exitstatus), tcolors.FAIL)
-            #colored_print('', tcolors.NORMAL)
     elif step['action'] == 'scp':
         for variable in dist_combined_variables:
             var = resolve_all_variables(step, variable)
-            if var:
-                if var['direction'].lower() not in scp_format.keys():
-                    double_colored_print('Skipping this action...\nReason: Unsupported direction for scp: ',
-                                            var['direction'], tcolors.FAIL, tcolors.WARNING)
-                    double_colored_print('Should be one of ', str(scp_format.keys()), tcolors.FAIL, tcolors.WARNING)
-                    return
-                remote_scp(var, get_timeout_secs(var['timeout_secs']))
+            if not var:
+                continue
+            if var['direction'].lower() not in scp_format.keys():
+                double_colored_print('Skipping this action...\nReason: Unsupported direction for scp: ',
+                                        var['direction'], tcolors.FAIL, tcolors.WARNING)
+                double_colored_print('Should be one of ', str(scp_format.keys()), tcolors.FAIL, tcolors.WARNING)
+                return
+            remote_scp(var, get_timeout_secs(var['timeout_secs']))
     elif step['action'] == 'ssh' or step['action'] == 'ssh-int':
         dist_action_variables = get_distinct_subset(action_params, variable_values)
         for index, act_variable in enumerate(dist_action_variables):
-            var = {}
-            for p in action_mandatory_params[step['action']]:
-                if isinstance(step[p], list):
-                    double_colored_print('Skipping this action...\nReason: Action parameter should be a string: ',
-                                                        p, tcolors.FAIL, tcolors.WARNING)
-                    return
-                var[p] = format(step[p], act_variable)
-
-            connection = expect_spawn(var, get_timeout_secs(var['timeout_secs']))
+            var = resolve_all_variables(step, act_variable)
+            if not var:
+                continue
+            connection, response = expect_spawn(var, get_timeout_secs(var['timeout_secs']))
             if connection:
                 if step['action'] == 'ssh':
+                    if default_live_run:
+                        if '\n' in response:
+                            split_res = response.rsplit('\n', 1)[0]
+                            if split_res:
+                                response = '\n' + response.rsplit('\n', 1)[-1]
+                        colored_print_without_newline(response, tcolors.NORMAL)
+                    else:
+                        colored_print('', tcolors.NORMAL)
                     # Below filtering is needed to filter in only variables matching the loop action variable
                     dist_commands_variables = get_filtered_variables(act_variable, dist_combined_variables)
                     for cmd_variable in dist_commands_variables:
@@ -509,6 +540,7 @@ def execute_action(action, step, variable_names, variable_values):
                 else: # step['action'] == 'ssh-int'
                     commands = []
                     timeout = 10
+                    colored_print_without_newline(response, tcolors.NORMAL)
                     extra_prompt = "('exit' to end interactive ssh) > "
                     colored_print_without_newline(extra_prompt, tcolors.BOLD)
                     while True:
@@ -570,22 +602,40 @@ def override_defaults_from_defaults_ini_file(live_run):
                 default_variables['password'] = def_prop['password']
             if live_run:
                 default_live_run = True
-            elif 'default_live_run' in def_prop and def_prop['default_live_run'] == True:
-                default_live_run = True
+            elif 'default_live_run' in def_prop:
+                dlr = def_prop['default_live_run']
+                if (isinstance(dlr, bool) and dlr == True) or (isinstance(dlr, (str, unicode)) and dlr.upper() == 'TRUE'):
+                    default_live_run = True
     except Exception as e:
         double_colored_print('Unable to read properties file: ', default_prop_file, tcolors.FAIL, tcolors.WARNING)
         colored_print('Reason: {0}'.format(str(e)), tcolors.FAIL)
         colored_print('Proceeding with hard coded defaults.', tcolors.NORMAL)
 
-def execute(config, live_run):
+def replace_config_variables(config, new_variables):
+    if not isinstance(new_variables, dict):
+        return
+    variables = {}
+    if 'variables' in config:
+        variables = config['variables']
+
+    for key in new_variables:
+        value = new_variables[key]
+        if not key.startswith(('#', '-')) and new_variables[key]:
+            org_key = key
+            if '.' in key:
+                groupname, key = key.rsplit('.', 1)
+            variables = {k: v for k, v in variables.iteritems() if not (k == key or k.endswith('.' + key))}
+            variables[org_key] = new_variables[org_key]
+    config['variables'] = variables
+
+def execute(config, live_run, override_variables = None):
     if not config or 'main' not in config:
         colored_print('Nothing configured to execute. Could not find "main" in the config.', tcolors.FAIL)
         sys.exit(1)
-
     override_defaults_from_defaults_ini_file(live_run)
+    replace_config_variables(config, override_variables)
 
     run_id, variable_names, variable_values = load_variables(config)
-
     for index, step_name in enumerate(config['main']):
         if not step_name.strip():
             colored_print("\n{0}. Skipping action... '{1}' : Blank action name not supported".format(index+1, step_name), tcolors.HEADER)
@@ -610,7 +660,7 @@ def execute(config, live_run):
         colored_print('{0}\n'.format('-'*(len(message1 + message2)-1)), tcolors.HEADER)
 
         execute_action(action, step, variable_names, variable_values)
-    double_colored_print('\nSuccessfully completed with RUN ID : ', run_id, tcolors.BOLD, tcolors.BOLDLGREEN)
+    double_colored_print('\nCompleted with RUN ID : ', run_id, tcolors.BOLD, tcolors.BOLDLGREEN)
     colored_print('', tcolors.BOLD)
 
 def main():
@@ -625,7 +675,9 @@ def main():
     parser.add_argument('--live-run', dest='live_run', help=live_run_desc, action='store_true')
     args = parser.parse_args()
 
-    '''
+    '''  TO BE IMPLEMENTED
+    logger = logging.getLogger(__name__)
+
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

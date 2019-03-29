@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 
 ########################################################################################
-#
-# This is a python script to read Ambari configurations and copy the logs
-# from appropriate service log_dir
-#
-# This tool can be run from Windows, Mac or Linux machines installed with python 2.x
-# The machine should have access to both Ambari Server nodes on each clusters
-#
-# Type 'python get_cluster_logs.py' and press enter for running instruction
-#
 # For any questions or suggestions please contact : Ajmal Yusuf <ayusuf@hortonworks.com>
 ########################################################################################
 
@@ -23,13 +14,12 @@ import base64
 
 import remote
 
-version = '1.0'
-
 # Change the default values for the below parameters
 # ========================================================================================
 default_ambari_user = 'admin'
 default_ambari_password = 'admin'
 default_ambari_port = '8080'
+
 default_logfile_masks = [ '*.log', '*.err', '*.out', '*.audit', 'gc.log*' ]
 default_service_log_subdir = { 'HDFS' : 'hdfs', 'MAPREDUCE2' : 'mapred', 'YARN' : 'yarn' }
 default_log_dir_properties = [
@@ -78,8 +68,12 @@ def create_global_api_accessor(login, password):
             response = urllib2.urlopen(request)
             response_body = response.read()
         except Exception as exc:
-            raise Exception('Problem with accessing api. Reason: {0}'.format(exc))
-        return response_body
+            #raise Exception('Problem with accessing api. Reason: {0}'.format(exc))
+            print 'Unable to connect to Ambari API URL: {0}'.format(api_url)
+            print 'Reason: {0}'.format(str(exc))
+            sys.exit(1)
+        else:
+            return response_body
 
 def get_url_data(url):
     #print '>>> ' + url   # Ajmal
@@ -221,20 +215,38 @@ def execute(username, password, clustername, base_url, selected_service, selecte
         variables['password'] = ssh_pass
     return variables
 
-def get_ambari_hosts(ambari_server, port, ambari_user, ambari_pass, clustername, service, component, ssh_user, ssh_pass):
-    port = port if port else default_ambari_port
-    ambari_user = ambari_user if ambari_user else default_ambari_user
+def get_ambari_hosts(ambari_server, ambari_port, ambari_username, ambari_password, clustername, service, component, ssh_user, ssh_pass):
+    if not (ambari_server or ambari_port or ambari_username or ambari_password):
+        try:
+            default_prop_file = 'default_properties.json'
+            with open(default_prop_file) as dpf:
+                def_prop = json.load(dpf)
+                if not ambari_server and 'ambari_server' in def_prop:
+                    ambari_server = def_prop['ambari_server']
+                if not ambari_port and 'ambari_port' in def_prop:
+                    ambari_port = def_prop['ambari_port']
+                if not ambari_username and 'ambari_username' in def_prop:
+                    ambari_username = def_prop['ambari_username']
+                if not ambari_password and 'ambari_password' in def_prop:
+                    ambari_password = def_prop['ambari_password']
+        except Exception as e:
+            double_colored_print('Unable to read properties file: ', default_prop_file, tcolors.FAIL, tcolors.WARNING)
+            colored_print('Reason: {0}'.format(str(e)), tcolors.FAIL)
+                
+    ambari_port = ambari_port if ambari_port else default_ambari_port
+    ambari_username = ambari_username if ambari_username else default_ambari_user
     protocol = 'http'
 
-    if not ambari_pass:
-        if ambari_user == default_ambari_user:
-            ambari_pass = getpass.getpass("Ambari password for '{0}' [{1}]: ".format(ambari_user, default_ambari_password))
-            if not ambari_pass:
-                ambari_pass = default_ambari_password
+    if not ambari_password:
+        if ambari_username == default_ambari_user:
+            ambari_password = getpass.getpass("Ambari password for '{0}' [{1}]: ".format(ambari_username, default_ambari_password))
+            if not ambari_password:
+                ambari_password = default_ambari_password
         else:
-            ambari_pass = getpass.getpass("Ambari password for '{0}': ".format(ambari_user))
-    create_global_api_accessor(ambari_user, ambari_pass)
-    base_url = '{0}://{1}:{2}/api/v1'.format(protocol, ambari_server, port)
+            ambari_password = getpass.getpass("Ambari password for '{0}': ".format(ambari_username))
+    create_global_api_accessor(ambari_username, ambari_password)
+    base_url = '{0}://{1}:{2}/api/v1'.format(protocol, ambari_server, ambari_port)
+    print 'Connecting to Ambari REST API: {0}'.format(base_url)
                             
-    return execute(ambari_user, ambari_pass, clustername, base_url, service, component, ssh_user, ssh_pass)
+    return execute(ambari_username, ambari_password, clustername, base_url, service, component, ssh_user, ssh_pass)
 

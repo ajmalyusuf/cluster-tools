@@ -1,18 +1,17 @@
 {
-    "constants" : {
-        "shell_prompt" : "\\$ $",
-        "progress_prompt" : "ETA",
-        "password_prompt" : "password: ",
-        "sudo_password_prompt" : "password for {username}:",
+    "variables" : {
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
+
+        "file_mask": [ "*.log", "*.err", "*.out", "*gc.log*" ],
+        "group1.service" : [ "HDFS", "YARN" ],
+        "group1.log_dir" : [ "/var/log/hadoop/hdfs", "/var/log/hadoop-yarn/yarn" ],
 
         "local_target_dir": "~/{run_id}",
         "remote_home" : "~",
         "remote_staging_dir" : "{remote_home}/{run_id}_{hostname}",
-        "tar_file_name" : "{run_id}_{hostname}.tgz",
-        "file_mask": [ "*.log", "*.err", "*.out", "*gc.log*" ],
-
-        "group2.service" : [ "HDFS", "YARN" ],
-        "group2.log_dir" : [ "/var/log/hadoop/hdfs", "/var/log/hadoop-yarn/yarn" ]
+        "tar_file_name" : "{run_id}_{hostname}.tgz"
     },
  
     "main" : [

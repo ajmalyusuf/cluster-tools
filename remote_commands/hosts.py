@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 
 ########################################################################################
-#
-# This is a python script to read Ambari configurations and copy the logs
-# from appropriate service log_dir
-#
-# This tool can be run from Windows, Mac or Linux machines installed with python 2.x
-# The machine should have access to both Ambari Server nodes on each clusters
-#
-# Type 'python get_cluster_logs.py' and press enter for running instruction
-#
 # For any questions or suggestions please contact : Ajmal Yusuf <ayusuf@hortonworks.com>
 ########################################################################################
 

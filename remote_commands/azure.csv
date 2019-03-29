@@ -1,5 +1,8 @@
 # hostname/ip, ssh_username, ssh_password (after second comma unitl \n; including spaces)
-kcspark-ssh.azurehdinsight.net, sshuser,Password1..
+hdi1-265.openstacklocal, ajmal,ajmal12
+hdi2-265.openstacklocal, ,ajmal12
+hdi3-265.openstacklocal, ajmal,
+hdi4-265.openstacklocal, ajmal,    
 #msft1-dev.openstacklocal, sshuser,ssh_pass
 
 

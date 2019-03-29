@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 
 ########################################################################################
-#
-# This is a python script to read Ambari configurations and copy the logs
-# from appropriate service log_dir
-#
-# This tool can be run from Windows, Mac or Linux machines installed with python 2.x
-# The machine should have access to both Ambari Server nodes on each clusters
-#
-# Type 'python get_cluster_logs.py' and press enter for running instruction
-#
 # For any questions or suggestions please contact : Ajmal Yusuf <ayusuf@hortonworks.com>
 ########################################################################################
 
@@ -43,16 +34,16 @@ def get_host_credentials(cred_file, sshuser, sshpass):
         if not line or line.startswith('#'):
             continue
         if len(line.split(',')) < 3:
-            print 'Skipping. Bad record : {0}'.format(line)
+            print 'Skipping. Bad record: {0}'.format(line)
             continue
         hostname, username, password = line.split(',',2)
         hostname = hostname.strip()
         username = username.strip()
         if host_regex.search(hostname) or ip_regex.search(hostname):
-            username = get_first_valid([username, sshuser], 'Skipping. No username provided : {0}'.format(line))
+            username = get_first_valid([username, sshuser], 'Skipping. No username provided: {0}'.format(line))
             if not username:
                 continue
-            password = get_first_valid([password, sshpass], 'Skipping. No password provided : {0}'.format(line))
+            password = get_first_valid([password, sshpass], 'Skipping. No password provided: {0}'.format(line))
             if not password:
                 continue
             credentials['credentials.hostname'].append(hostname)

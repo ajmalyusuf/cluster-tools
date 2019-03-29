@@ -1,27 +1,18 @@
 {
     "variables" : {
-        "credentials.hostname" : [ "dfs1-dev.openstacklocal", "dfs2-dev.openstacklocal" ],
-        "credentials.username" : [ "ajmal", "ajmal" ],
-        "credentials.password" : [ "ajmal", "ajmal" ]
-    },
-
-    "constants" : {
-        "timeout_secs" : 10,
-        "shell_prompt" : "\\$ $",
-        "password_prompt" : "password: ",
-        "sudo_password_prompt" : "password for {username}:",
-
-        "agent_command" : "sudo ambari-agent status"
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
+        "agent_command" : "hostname -f; sudo ambari-agent status"
     },
 
     "main" : [
-        "check_versions"
+        "check_agent_status"
     ],
 
-    "check_versions" : {
+    "check_agent_status" : {
         "action" : "ssh",
         "commands" : [
-            "hostname -f",
             "{agent_command}"
         ]
     }

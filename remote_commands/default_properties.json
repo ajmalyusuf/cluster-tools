@@ -1,5 +1,5 @@
 {
-    "default_live_run" : "True",
+    "default_live_run" : "False",
 
     "shell" : "bash",
     "timeout_secs" : "60",
@@ -8,12 +8,14 @@
     "password_prompt" : "password: ",
     "sudo_password_prompt" : "password for {username}: ",
     "progress_prompt" : "ETA",
-
+    
+    "--username" : "sshuser",
+    "--password" : "Password1..",
     "username" : "ajmal",
     "password" : "ajmal12",
 
-    "ambari_server" : "dfs1-dev.openstacklocal",
+    "ambari_server" : "headnodehost",
     "ambari_port" : "8080",
     "ambari_username" : "admin",
-    "ambari_password" : "admin"
+    "ambari_password" : "Password1.."
 }

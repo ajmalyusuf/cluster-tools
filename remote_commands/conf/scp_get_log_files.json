@@ -1,0 +1,53 @@
+{
+    "variables" : {
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
+        "4.service" : ":p?",
+        "5.log_dir" : ":p?",
+        "6.conf_dir" : ":p?",
+
+        "log_files" : [ "*.log", "*.out" ],
+        "conf_files" : "*",
+        "target_dir" : "~/CLUSTER_LOGS/{run_id}/{service}/{hostname}"
+    },
+
+    "main" : [
+        "create_local_dir_foreach_host",
+        "set_remote_read_permission",
+        "get_log_files_from_remote",
+        "get_config_files_from_remote"
+    ],
+
+    "create_local_dir_foreach_host" : {
+        "action" : "local",
+        "commands" : [
+            "mkdir -p {target_dir}/logs",
+            "mkdir -p {target_dir}/configs"
+        ]
+    },
+
+    "set_remote_read_permission" : {
+        "action" : "ssh",
+        "commands" : [
+            "sudo chmod +r {log_dir}/*"
+        ]
+    },
+
+    "get_log_files_from_remote" : {
+        "action" : "scp",
+        "direction" : "get",
+        "source_dir" : "{log_dir}",
+        "source_file" : "{log_files}",
+        "target_dir" : "{target_dir}/logs"
+    },
+
+    "get_config_files_from_remote" : {
+        "action" : "scp",
+        "direction" : "get",
+        "source_dir" : "{conf_dir}",
+        "source_file" : "{conf_files}",
+        "target_dir" : "{target_dir}/configs"
+    }
+}
+

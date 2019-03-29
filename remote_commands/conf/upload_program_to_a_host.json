@@ -1,11 +1,9 @@
 {
     "variables" : {
-        "hostname" : "kcspark-ssh.azurehdinsight.net",
-        "username" : "sshuser",
-        "password" : "Password1.."
-    },
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
 
-    "constants" : {
         "remote_program_dir" : "~/remote_program",
         "src_dir" : "./",
         "src_files" : "*"

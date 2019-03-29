@@ -1,15 +1,8 @@
 {
     "variables" : {
-        "credentials.hostname" : [ "kcspark-ssh.azurehdinsight.net", "dfs1-dev.openstacklocal" ],
-        "credentials.username" : [ "sshuser", "ajmal" ],
-        "credentials.password" : [ "Password1..", "ajmal" ]
-    },
-
-    "constants" : {
-        "timeout_secs" : "10z",
-        "shell_prompt" : "\\$ $",
-        "password_prompt" : "password: ",
-        "sudo_password_prompt" : "password for {username}:",
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
 
         "type_command" : "lsb_release -a|grep 'Distributor ID:'|cut -d ':' -f2|tr -d '[:space:]'",
         "ubuntu_command" : "dpkg --list | grep hadoop",

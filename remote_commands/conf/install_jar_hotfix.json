@@ -1,12 +1,19 @@
 {
-    "constants" : {
-        "hotfix_hdp_version" : "2.6.3.2-14",
-        "installed_hdp_version" : "2.6.5.3005-27",
+    "variables" : {
+        "--hotfix_hdp_version" : "2.6.3.2-14",
+        "--installed_hdp_version" : "2.6.5.3005-27",
+        "1.hostname" : ":p?",
+        "2.username" : ":p?",
+        "3.password" : ":pp?",
+
+        "4.hotfix_hdp_version" : ":p?",
+        "5.installed_hdp_version" : ":p?",
+
         "target_lib_dir" : "/usr/hdp/{installed_hdp_version}/hive/lib",
         "install_lib_mask" : "hive-*.jar",
-        "local_hotfix_jar_dir" : "/home/{username}/Shire-Hive-2.6.3.2-14",
+        "local_hotfix_jar_dir" : "~/Shire-Hive-2.6.3.2-14",
 
-        "hotfix_install_data_dir" : "/home/{username}/{run_id}_HOTFIX_INSTALLATION",
+        "hotfix_install_data_dir" : "~/{run_id}_HOTFIX_INSTALLATION",
         "hotfix_jars" : "hotfix_jars",
         "original_jars" : "original_jars",
         "substitute_cmd" : "sed 's/{hotfix_hdp_version}/{installed_hdp_version}/g'",
