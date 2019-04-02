@@ -1,5 +1,5 @@
 {
-    "-- any variable starting with a -- is commented or ignored" : "this line is ignoded",
+    "--any variable starting with a -- is commented or ignored" : "this line is ignoded",
 
     "default_live_run" : "False",
 

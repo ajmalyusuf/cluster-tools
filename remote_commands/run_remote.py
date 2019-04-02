@@ -38,7 +38,7 @@ def main():
         group.add_argument('-f', '--conf-file', dest='conf_file', help='Name of the config file in JSON format')
         group.add_argument('--interact', help='Flag to enable SSH in an interactive mode', action='store_true')
 
-    prog = 'remote'
+    prog = 'run_remote.py'
     usage = 'usage: host [-h] [COMMAND]'
     description = 'Script to execute configured commands in local and remote hosts. ' \
                 'The program is capable of running any UNIX command on any host with credentials'
