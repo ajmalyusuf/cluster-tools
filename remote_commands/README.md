@@ -199,7 +199,7 @@ b) Below command can be used for interative mode
 python run_remote.py cred -c azure.csv --interact -u sshuser -p :pp?
 ```
 
-### 1.3. Using subcommand "ambari"
+### 1.4. Using subcommand "ambari"
 With this subcommand the program will use the supplied AMBARI information, use Ambari REST API to collect hostnames and log directories for a given SERVICE and COMPONENT.
 **Usage:**
 ```
@@ -337,7 +337,7 @@ The config file supports three types of actions; **local**, **ssh** and **scp**.
     ***NOTE:*** If you have multiple actions in a config file, the above arguments/parameters can be defined in the **variables** section of a config file, instead of repeating on each of the actions. Refer config file description below for details on **variables** sections.
     
 
-## 2.1 Config file (examples in [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf) folder)
+Examples of config files can be found in [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf) folder
 
 A config file is a JSON format file with a set of actions configured. This config file is passed to the [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py) module to execute all the set of actions.
 
@@ -388,7 +388,7 @@ All of these actions should be defined in the config file (shown below).
 
 ### 2.3. **Action definitions** 
 
-#### 2.3.1 "create_local_dir" action
+#### 2.3.1. "create_local_dir" action
 
 The below JSON element defines the _create_local_dir_ local action. **_mkdir_** and the **_ls_** commands will be performed on the local machine where the program is run.
 ```
@@ -422,7 +422,7 @@ ls -al /Users/ayusuf/CLUSTER_LOGS/RID_20181216_152011_UTC/ec2.18-234-201.compute
 ```
 So two directories will be created in the local machine:
 
-#### 2.3.2 "create_remote_dir" action
+#### 2.3.2. "create_remote_dir" action
 
 Consider the _{remote_working_dir}_ variable used in this action.
 
@@ -461,7 +461,7 @@ Second iteration:
 ```
 **Note:** It will **NOT** create a directory something like /home/**sshuser**/ec2.18-234-201.compute-1.amazonaws.com as each set of values are grouped by the _credentials_ group name. You can give any name for a group; but all the variables in a group should have the same name (prefix before dot)
 
-#### 2.3.3 "create_remote_files" action
+#### 2.3.3. "create_remote_files" action
 Similarly, the below action has three variables _{username}_, _{hostname}_ (resolved from _{remote_working_dir}_) and _{file_name}_
 ```
 "create_remote_files" : {
@@ -501,7 +501,7 @@ The **cd** and **echo** commands will be run for 4 iterations.
 "cd /home/ajmal/ec2.18-234-201.compute-1.amazonaws.com",
 "echo \"This line is written by the remote program\" > test_file_2.out"     
 ```
-#### 2.3.4 "scp_remote_files_to_local_dir" action
+#### 2.3.4. "scp_remote_files_to_local_dir" action
 I am tired to explain this; please figure it out as an exercise :-)
 ```
 "scp_remote_files_to_local_dir" : {
@@ -642,19 +642,19 @@ ayusuf@MacBook-Pro:~/git/cluster-tools/remote_commands$
 
 There are multiple ways to supply values for variables and arguments. Here are the list of variables and arguments and the order of precedence
 
-### 4.1 argument "live-run"
+### 4.1. argument "live-run"
 
 1) `--live-run` argument supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
 2) `default_live_run` property in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
 3) `default_live_run = False` global variable hardcoded in [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py)
 
-### 4.2 argument "run-id"
+### 4.2. argument "run-id"
 
 1. `--run-id RUN_ID` argument supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
 2. `run_id` variable configured as part of `variables` section of config file
 3. Automatically generated based on the UTC time in the format `RID_YYYYMMDD_HHMISS_UTC`
 
-### 4.3 SSH and SCP variables
+### 4.3. SSH and SCP variables
 ```
 shell
 timeout_secs
@@ -680,14 +680,14 @@ default_variables = {
 }
 ```
 
-### 4.4 username and password
+### 4.4. username and password
 
 1. `-u/--username USERNAME` and `-p/--password PASSWORD` arguments supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
 2. `username` and `password` variables configured as part of action definition in the config file
 3. `username` and `password` variables configured as part of `variables` section of config file
 4. `username` and `password` properties defined in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
 
-### 4.5 Ambari perperties for "ambari" subcommand
+### 4.5. Ambari perperties for "ambari" subcommand
 ```
 ambari_server
 ambari_port
