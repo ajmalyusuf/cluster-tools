@@ -515,6 +515,129 @@ I am tired to explain this; please figure it out as an exercise :-)
 A sample output screenshot:
 [sample_output.jpg](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/sample_output.jpg)
 
+## 2. Interactive mode
+
+You may also run this program in an Interactive mode on a list of hosts, where the the program will ssh to the first hostname and prompt you to enter interactive shell commands. 
+
+You may type `exit` to come of the interactive mode and the program will prompt you if you would like to run all the commands run interactively on the first host on the remaining hosts autimatically.
+
+For example:
+```
+ayusuf@MacBook-Pro:~/git/cluster-tools/remote_commands$ python run_remote.py hosts -i hdi --interact --live-run -u ajmal -p ajmal12
+
+1. Running action... interative_ssh (ssh-int)
+---------------------------------------------
+
+Connecting... ssh -o CheckHostIP=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ajmal@hdi1-265.openstacklocal
+Sending password ... Connection established
+
+Last login: Wed Apr  3 01:35:40 2019 from 10.42.80.227
+[ajmal@hdi1-265 ~]$ ('exit' to end interactive ssh) > ls -al
+total 28
+drwx------.  3 ajmal ajmal 4096 Apr  3 01:04 .
+drwxr-xr-x. 18 root  root  4096 Feb 19 22:24 ..
+-rw-------.  1 ajmal ajmal 2497 Apr  3 01:04 .bash_history
+-rw-r--r--.  1 ajmal ajmal   18 Oct 16  2014 .bash_logout
+-rw-r--r--.  1 ajmal ajmal  176 Oct 16  2014 .bash_profile
+-rw-r--r--.  1 ajmal ajmal  124 Oct 16  2014 .bashrc
+drwxrwxr-x.  4 ajmal ajmal 4096 Apr  3 01:04 REMOTE_DIR
+[ajmal@hdi1-265 ~]$ ('exit' to end interactive ssh) > uptime
+ 02:55:22 up 43 days,  1:19,  1 user,  load average: 0.02, 0.08, 0.08
+[ajmal@hdi1-265 ~]$ ('exit' to end interactive ssh) > sudo ambari-agent status
+Sending password ... Done
+
+Found ambari-agent PID: 11885
+ambari-agent running.
+Agent PID at: /var/run/ambari-agent/ambari-agent.pid
+Agent out at: /var/log/ambari-agent/ambari-agent.out
+Agent log at: /var/log/ambari-agent/ambari-agent.log
+[ajmal@hdi1-265 ~]$ ('exit' to end interactive ssh) > exit
+logout
+Connection to hdi1-265.openstacklocal closed.
+Exiting interative ssh ...
+
+Run all these commands on rest of the hosts? [y]/n : y
+
+Writing config file: interactive.json
+Connecting... ssh -o CheckHostIP=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ajmal@hdi2-265.openstacklocal
+Sending password ... Connection established
+
+[ajmal@hdi2-265 ~]$ ls -al
+total 28
+drwx------.  3 ajmal ajmal 4096 Feb 24 00:29 .
+drwxr-xr-x. 17 root  root  4096 Feb 19 22:28 ..
+-rw-------.  1 ajmal ajmal 1580 Mar 21 17:11 .bash_history
+-rw-r--r--.  1 ajmal ajmal   18 Oct 16  2014 .bash_logout
+-rw-r--r--.  1 ajmal ajmal  176 Oct 16  2014 .bash_profile
+-rw-r--r--.  1 ajmal ajmal  124 Oct 16  2014 .bashrc
+drwxrwxr-x.  4 ajmal ajmal 4096 Feb 24 00:29 REMOTE_DIR
+[ajmal@hdi2-265 ~]$ uptime
+ 02:56:48 up 43 days,  1:21,  1 user,  load average: 0.10, 0.13, 0.11
+[ajmal@hdi2-265 ~]$ sudo ambari-agent status
+Sending password ... Done
+
+ajmal is not in the sudoers file.  This incident will be reported.
+[ajmal@hdi2-265 ~]$ exit
+logout
+Connection to hdi2-265.openstacklocal closed.
+
+
+Connecting... ssh -o CheckHostIP=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ajmal@hdi3-265.openstacklocal
+Sending password ... Connection established
+
+[ajmal@hdi3-265 ~]$ ls -al
+total 28
+drwx------.  3 ajmal ajmal 4096 Feb 24 00:29 .
+drwxr-xr-x. 17 root  root  4096 Feb 19 22:29 ..
+-rw-------.  1 ajmal ajmal 1502 Mar 21 17:08 .bash_history
+-rw-r--r--.  1 ajmal ajmal   18 Oct 16  2014 .bash_logout
+-rw-r--r--.  1 ajmal ajmal  176 Oct 16  2014 .bash_profile
+-rw-r--r--.  1 ajmal ajmal  124 Oct 16  2014 .bashrc
+drwxrwxr-x.  4 ajmal ajmal 4096 Feb 24 00:29 REMOTE_DIR
+[ajmal@hdi3-265 ~]$ uptime
+ 02:56:19 up 43 days,  1:20,  1 user,  load average: 0.14, 0.08, 0.06
+[ajmal@hdi3-265 ~]$ sudo ambari-agent status
+Sending password ... Done
+
+ajmal is not in the sudoers file.  This incident will be reported.
+[ajmal@hdi3-265 ~]$ exit
+logout
+Connection to hdi3-265.openstacklocal closed.
+
+
+Connecting... ssh -o CheckHostIP=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ajmal@hdi4-265.openstacklocal
+Sending password ... Connection established
+
+[ajmal@hdi4-265 ~]$ ls -al
+total 44
+drwx------.  6 ajmal ajmal 4096 Apr  3 01:31 .
+drwxr-xr-x. 17 root  root  4096 Feb 19 22:30 ..
+-rw-------.  1 ajmal ajmal 2845 Apr  3 01:31 .bash_history
+-rw-r--r--.  1 ajmal ajmal   18 Oct 16  2014 .bash_logout
+-rw-r--r--.  1 ajmal ajmal  176 Oct 16  2014 .bash_profile
+-rw-r--r--.  1 ajmal ajmal  124 Oct 16  2014 .bashrc
+-rw-rw-r--.  1 ajmal ajmal  648 Mar 14 14:50 derby.log
+drwxrwxr-x.  5 ajmal ajmal 4096 Mar 14 14:50 metastore_db
+drwxrwxr-x.  2 ajmal ajmal 4096 Mar 14 14:49 .oracle_jre_usage
+drwxrwxr-x.  4 ajmal ajmal 4096 Feb 24 00:29 REMOTE_DIR
+drwxrwxr-x.  6 ajmal ajmal 4096 Feb 24 16:06 remote_program
+[ajmal@hdi4-265 ~]$ uptime
+ 02:56:21 up 43 days,  1:20,  1 user,  load average: 0.25, 0.30, 0.28
+[ajmal@hdi4-265 ~]$ sudo ambari-agent status
+Sending password ... Done
+
+ajmal is not in the sudoers file.  This incident will be reported.
+[ajmal@hdi4-265 ~]$ exit
+logout
+Connection to hdi4-265.openstacklocal closed.
+
+
+
+Completed with RUN ID : RID_20190403_025506_UTC
+
+ayusuf@MacBook-Pro:~/git/cluster-tools/remote_commands$
+```
+
 
 
 
