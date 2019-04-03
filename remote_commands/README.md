@@ -355,7 +355,7 @@ Each config file has below sections defined as a JSON elements:
 "variables" : {
     "credentials.hostname" : [ "ajmal-ssh.azurehdinsight.net", "ec2.18-234-201.compute-1.amazonaws.com" ],
     "credentials.username" : [ "sshuser", "ajmal" ],
-    "credentials.password" : [ "mypass123@", "somepass123!" ]
+    "credentials.password" : [ "mypass123@", "somepass123!" ],
 
     "timeout_secs" : "30",
     "shell_prompt" : "\\$ $",
@@ -461,7 +461,7 @@ Second iteration:
 ```
 **Note:** It will **NOT** create a directory something like /home/**sshuser**/ec2.18-234-201.compute-1.amazonaws.com as each set of values are grouped by the _credentials_ group name. You can give any name for a group; but all the variables in a group should have the same name (prefix before dot)
 
-#### 2.3.3 "create_remote_dir" action
+#### 2.3.3 "create_remote_files" action
 Similarly, the below action has three variables _{username}_, _{hostname}_ (resolved from _{remote_working_dir}_) and _{file_name}_
 ```
 "create_remote_files" : {
