@@ -246,7 +246,7 @@ def get_ambari_hosts(ambari_server, ambari_port, ambari_username, ambari_passwor
             ambari_password = getpass.getpass("Ambari password for '{0}': ".format(ambari_username))
     create_global_api_accessor(ambari_username, ambari_password)
     base_url = '{0}://{1}:{2}/api/v1'.format(protocol, ambari_server, ambari_port)
-    print 'Connecting to Ambari REST API: {0}'.format(base_url)
+    print '\nConnecting to Ambari REST API: {0}'.format(base_url)
                             
     return execute(ambari_username, ambari_password, clustername, base_url, service, component, ssh_user, ssh_pass)
 

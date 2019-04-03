@@ -86,6 +86,17 @@ class tcolors:
     ITALIC = '\033[3m'
     UNDERLINE = '\033[4m'
 
+def prompt(value, prompt_str):
+    if value.startswith(':p?'):
+        value = raw_input(prompt_str)
+        if not value:
+            sys.exit(0)
+    elif value.startswith(':pp?'):
+        value = getpass.getpass(prompt_str)
+        if not value:
+            sys.exit(0)
+    return value
+
 def print_json(output, heading = None):
     if heading:
         print heading
@@ -177,20 +188,14 @@ def populate_defaults(config):
         return False
     def get_value(key, value):
         if isinstance(value, (str, unicode)):
-            if value.startswith(':p?') or value.startswith(':pp?'):
+            if value.startswith((':p?', ':pp?')):
                 if(key == 'username' or key.endswith('.username')) and 'username' in default_variables:
                     value = default_variables['username']
                 elif (key == 'password' or key.endswith('.password')) and 'password' in default_variables:
                     value = default_variables['password']
 
-            if value.startswith(':p?'):
-                value = raw_input('Enter the value for {0}{1}{2} [exit]: '.format(tcolors.BOLD, key, tcolors.NORMAL))
-                if not value:
-                    sys.exit(0)
-            elif value.startswith(':pp?'):
-                value = getpass.getpass('Enter the value for {0}{1}{2} [exit]: '.format(tcolors.WARNING, key, tcolors.NORMAL))
-                if not value:
-                    sys.exit(0)
+            if value.startswith((':p?', ':pp?')):
+                value = prompt(value, 'Enter the value for {0}{1}{2} [exit]: '.format(tcolors.BOLD, key, tcolors.NORMAL))
         return value 
     def insert_into_variables_if_not_present(key, value):
         org_key = key
