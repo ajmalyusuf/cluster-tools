@@ -334,7 +334,7 @@ The config file supports three types of actions; **local**, **ssh** and **scp**.
       
       If the **_direction_** is ``get``, then **_target_dir_** will on the local machine and **_source_dir_** will be on the remote machine. If the **_direction_** is ``send``, then the other way around. 
     
-    ***NOTE:*** If you have multiple actions in a config file, the above arguments/parameters can be defined in the **variables** or **constants** section of a config file, instead of repeating on each of the actions. Refer config file description below for details on **variables** and **constants** sections.
+    ***NOTE:*** If you have multiple actions in a config file, the above arguments/parameters can be defined in the **variables** section of a config file, instead of repeating on each of the actions. Refer config file description below for details on **variables** sections.
     
 
 ## 2.1 Config file (examples in [conf](https://github.com/ajmalyusuf/cluster-tools/edit/master/remote_commands/conf) folder)
@@ -400,7 +400,7 @@ The below JSON element defines the _create_local_dir_ local action. **_mkdir_** 
     ]
 },
 ```
-Please note that the variable _{local_target_dir}_ is defiend in the **constants** section, using two other variables: _{run_id}_ and _{hostname}_.
+Please note that the variable _{local_target_dir}_ is defiend in the **variables** section, using two other variables: _{run_id}_ and _{hostname}_.
 
 _{run_id}_ has only one value for any run instance; lets assume it to be "*RID_20181216_152011_UTC*" (automatically generated based on system timestamp when run). But, _{hostname}_ is configured as a list/array of 2 values: "*ajmal-ssh.azurehdinsight.net*", "*ec2.18-234-201.compute-1.amazonaws.com*".
 
@@ -515,7 +515,7 @@ I am tired to explain this; please figure it out as an exercise :-)
 A sample output screenshot:
 [sample_output.jpg](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/sample_output.jpg)
 
-## 2. Interactive mode
+## 3. Interactive mode
 
 You may also run this program in an Interactive mode on a list of hosts, where the the program will ssh to the first hostname and prompt you to enter interactive shell commands. 
 
@@ -637,6 +637,66 @@ Completed with RUN ID : RID_20190403_025506_UTC
 
 ayusuf@MacBook-Pro:~/git/cluster-tools/remote_commands$
 ```
+
+## 4. Default values for variables and arguments and their precedence 
+
+There are multiple ways to supply values for variables and arguments. Here are the list of variables and arguments and the order of precedence
+
+### 4.1 argument "live-run"
+
+1) `--live-run` argument supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
+2) `default_live_run` property in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
+3) `default_live_run = False` global variable hardcoded in [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py)
+
+### 4.2 argument "run-id"
+
+1. `--run-id RUN_ID` argument supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
+2. `run_id` variable configured as part of `variables` section of config file
+3. Automatically generated based on the UTC time in the format `RID_YYYYMMDD_HHMISS_UTC`
+
+### 4.3 SSH and SCP variables
+```
+shell
+timeout_secs
+shell_prompt
+password_prompt
+sudo_password_prompt
+progress_prompt
+options
+```
+1) Configured as part of the action definition in the JSON config file
+2) Configured as `variables` in the JSON config file
+3) Defined in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
+4) `default_variables` global dictionary in [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py)
+```
+default_variables = {
+    'shell' : 'bash',
+    'timeout_secs' : 60,
+    'shell_prompt' : '[\$\#]? $',
+    'password_prompt' : 'password: ',
+    'sudo_password_prompt' : 'password for {username}:',
+    'progress_prompt' : 'ETA',
+    'options' : '-o CheckHostIP=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+}
+```
+
+### 4.4 username and password
+
+1. `-u/--username USERNAME` and `-p/--password PASSWORD` arguments supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
+2. `username` and `password` variables configured as part of action definition in the config file
+3. `username` and `password` variables configured as part of `variables` section of config file
+4. `username` and `password` properties defined in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
+
+### 4.5 Ambari perperties for "ambari" subcommand
+```
+ambari_server
+ambari_port
+ambari_username
+ambari_password
+```
+1. Supplied to the program [run_remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/run_remote.py)
+2. Configured as part of `variables` section of config file
+3. Defined in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
 
 
 
