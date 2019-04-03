@@ -640,7 +640,7 @@ ayusuf@MacBook-Pro:~/git/cluster-tools/remote_commands$
 
 ## 4. Default values for variables and arguments and their precedence 
 
-There are multiple ways to supply values for variables and arguments. Here are the list of variables and arguments and the order of precedence
+There are multiple ways to supply values for variables and arguments. Here are the list of variables and arguments and their order of precedence
 
 ### 4.1. argument "live-run"
 
@@ -667,7 +667,7 @@ options
 1) Configured as part of the action definition in the JSON config file
 2) Configured as `variables` in the JSON config file
 3) Defined in [default_properties.json](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/default_properties.json) file
-4) `default_variables` global dictionary in [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py)
+4) `default_variables` global dictionary hardcoded in [remote.py](https://github.com/ajmalyusuf/cluster-tools/blob/master/remote_commands/remote.py)
 ```
 default_variables = {
     'shell' : 'bash',
